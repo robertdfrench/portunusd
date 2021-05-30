@@ -3,15 +3,14 @@ sequenceDiagram
     participant relaydoors
     participant Door
     participant Application
-    participant SMF
-    SMF->>Application: Boot
     Application->>Door: Create /var/run/app.door
-    SMF->>relaydoors: "Relay Port 80 to /var/run/app.door"
     relaydoors->>Door: Open
     relaydoors->>relaydoors: listen on port 80
     loop Handle Requests
-        Client->>+relaydoors: GET /resource
-        relaydoors->>+Application: GET /resource (via door)
-        Application->>-relaydoors: Response (via door)
-        relaydoors->>-Client: Response
+        Client->>+relaydoors: Open TCP connection
+        relaydoors->>+Application: Forward client file descriptor via door_call
+        Client->>+Application: Zero-copy Request
+        Application->>-Client: Zero-copy Response
+        Application->>-relaydoors: door_return
+        relaydoors->>-Client: Close TCP connection
     end
