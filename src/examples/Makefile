@@ -1,10 +1,22 @@
-all: hello_web.app
-	@echo "All application examples are ready."
+SOURCE_FILES = $(wildcard *.c)
 
-%.test: %.app
-	kill -9 `cat /var/run/hello_web.pid` || true
-	rm -f /var/run/hello_web_door
-	(./$< &)
+all: $(patsubst %.c,%.app,$(SOURCE_FILES));
 
 %.app: %.c
 	clang $< -o $@
+
+test_all: $(patsubst %.c,%.test,$(SOURCE_FILES));
+
+%.test: %.app %.stop
+	(./$< &)
+
+stop_all: $(patsubst %.c,%.stop,$(SOURCE_FILES));
+
+%.stop:
+	ps aux \
+		| awk '/$*/ && !/awk/ { print $$2 }' \
+		| xargs -n1 --no-run-if-empty kill -9
+	rm -f /var/run/$*.pid /var/run/$*_door
+
+clean: stop_all
+	rm -f *.app

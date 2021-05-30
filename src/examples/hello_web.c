@@ -18,7 +18,7 @@ char handle_request(int client_fd) {
 	// Greet the client
 	char greeting[64];
 
-	int greeting_len = snprintf(greeting, 64, "Hello %s!", name);
+	int greeting_len = snprintf(greeting, 64, "Hello %s!\n", name);
 	if (greeting_len < 0) return 2; // Error 2: Formatting failure.
 
 	ssize_t bytes_written = write(client_fd, greeting, greeting_len);
@@ -36,23 +36,11 @@ void answer_door(void* cookie, char* args, size_t nargs,
 	int client_fd = descriptors[0].d_data.d_desc.d_descriptor;
 
 	char rc = handle_request(client_fd);
+	if (close(client_fd) == -1) rc = 5; // Error 5: Cannot close connection
 	door_return(&rc, 1, NULL, 0);
 }
 
-void publish_pid(char* path) {
-	FILE* f = fopen(path, "w");
-	if (f == NULL) err(1, "Could not create pid file on disk");
-
-	// The manpage says getpid will not fail, so no error handling is
-	// needed in this case.
-	pid_t pid = getpid();
-
-	if (fprintf(f, "%d", pid) < 0) err(1, "Could not write pid to disk");
-	if (fclose(f) != 0) err(1, "Could not close pid file after writing");
-}
-
 int main() {
-	publish_pid("/var/run/hello_web.pid");
 	char* path = "/var/run/hello_web_door";
 
 	int door = door_create(&answer_door, NULL, 0);

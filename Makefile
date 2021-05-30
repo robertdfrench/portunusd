@@ -12,8 +12,8 @@ help: #: Build this help menu from Makefile target comments (default)
 	@awk -F ':' 'NF >= 3 { OFS="#"; print "-",$$1,$$3 }' $(MAKEFILE_LIST) \
 		| sort | column -s "#" -t
 
-check: sync #: Test latest code on $SMARTOS_HOST
-	ssh root@$(SMARTOS_HOST) gmake -C relaydoors/src check
+test: sync #: Test latest code on $SMARTOS_HOST
+	ssh root@$(SMARTOS_HOST) gmake -C relaydoors/src test
 
 provision: sync #: Install all our dev packages on $SMARTOS_HOST
 	ssh root@$(SMARTOS_HOST) pkgin -y install clang gmake
@@ -22,7 +22,7 @@ sync: _smartos_host #: Sync our code to $SMARTOS_HOST
 	rsync -r . root@$(SMARTOS_HOST):~/relaydoors
 
 clean: _smartos_host #: Remove our code from $SMARTOS_HOST
-	ssh root@$(SMARTOS_HOST) rm -rf relaydoors
+	ssh root@$(SMARTOS_HOST) gmake -C relaydoors/src clean
 
 _smartos_host: # throw an error if $SMARTOS_HOST isn't defined
 ifndef SMARTOS_HOST
