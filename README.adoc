@@ -5,7 +5,7 @@ _Like relayd, but with doors._
 https://github.com/openbsd/src/tree/master/usr.sbin/httpd[`relayd`] and heirloom
 UNIX
 https://developer.ibm.com/technologies/linux/articles/au-spunix-inetd/[`inetd`].
-It listens for an incoming networking connection, forwarding the session socket
+It listens for an incoming network connection, forwarding the session socket
 descriptor over an https://github.com/robertdfrench/revolving-door[illumos door]
 to the intended application.  `relaydoors` maps each connected port to a door on
 the filesystem provided by the target application.
