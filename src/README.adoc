@@ -1,0 +1,12 @@
+== relaydoors
+_The Actual Source Code_
+
+=== Dependencies
+* illumos
+* gmake
+* clang
+
+=== Building
+* `make` to build
+* `make check` to run tests
+* `make install` to deploy!

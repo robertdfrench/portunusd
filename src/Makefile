@@ -1,2 +1,5 @@
-test:
-	@echo "It works!"
+check: relaydoors
+	./$<
+
+relaydoors: relaydoors.c
+	clang $< -o $@

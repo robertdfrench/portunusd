@@ -12,8 +12,8 @@ help: #: Build this help menu from Makefile target comments (default)
 	@awk -F ':' 'NF >= 3 { OFS="#"; print "-",$$1,$$3 }' $(MAKEFILE_LIST) \
 		| sort | column -s "#" -t
 
-test: sync #: Test latest code on $SMARTOS_HOST
-	ssh root@$(SMARTOS_HOST) gmake -C relaydoors/src test
+check: sync #: Test latest code on $SMARTOS_HOST
+	ssh root@$(SMARTOS_HOST) gmake -C relaydoors/src check
 
 provision: sync #: Install all our dev packages on $SMARTOS_HOST
 	ssh root@$(SMARTOS_HOST) pkgin -y install clang gmake
