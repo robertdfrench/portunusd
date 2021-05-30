@@ -20,5 +20,7 @@ reached; otherwise, existing threads will be re-used to handle subsequent
 requests.
 
 === Acknowledgements
-* relaydoors is inspired by OpenBSD's https://github.com/openbsd/src/usr.sbin/relayd[`relayd`].
-* The social media preview image is https://www.flickr.com/photos/vergio_graffito/4623002636/[Relay Sonze] by https://www.flickr.com/photos/vergio_graffito/[Vergio Graffito].
+
+The social media preview image is
+https://www.flickr.com/photos/vergio_graffito/4623002636/[Relay Sonze] by
+https://www.flickr.com/photos/vergio_graffito/[Vergio Graffito].
