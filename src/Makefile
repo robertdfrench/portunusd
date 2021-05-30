@@ -1,0 +1,2 @@
+test:
+	@echo "It works!"

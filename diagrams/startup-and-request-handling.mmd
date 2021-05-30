@@ -1,0 +1,17 @@
+sequenceDiagram
+    participant Client
+    participant relaydoors
+    participant Door
+    participant Application
+    participant SMF
+    SMF->>Application: Boot
+    Application->>Door: Create /var/run/app.door
+    SMF->>relaydoors: "Relay Port 80 to /var/run/app.door"
+    relaydoors->>Door: Open
+    relaydoors->>relaydoors: listen on port 80
+    loop Handle Requests
+        Client->>+relaydoors: GET /resource
+        relaydoors->>+Application: GET /resource (via door)
+        Application->>-relaydoors: Response (via door)
+        relaydoors->>-Client: Response
+    end
