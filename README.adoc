@@ -2,7 +2,8 @@
 _Like relayd, but with doors._
 
 `relaydoors` is an avant-garde application server inspired by OpenBSD's
-https://github.com/openbsd/src/usr.sbin/relayd[`relayd`] and heirloom UNIX
+https://github.com/openbsd/src/tree/master/usr.sbin/httpd[`relayd`] and heirloom
+UNIX
 https://developer.ibm.com/technologies/linux/articles/au-spunix-inetd/[`inetd`].
 It listens for an incoming networking connection, forwarding the session socket
 descriptor over an https://github.com/robertdfrench/revolving-door[illumos door]
