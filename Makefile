@@ -13,16 +13,19 @@ help: #: Build this help menu from Makefile target comments (default)
 		| sort | column -s "#" -t
 
 test: sync #: Test latest code on $SMARTOS_HOST
-	ssh root@$(SMARTOS_HOST) gmake -C relaydoors/src test
+	ssh -t root@$(SMARTOS_HOST) gmake -C relaydoors/src test
+
+start: sync #: Run the latest code on $SMARTOS_HOST
+	ssh -t root@$(SMARTOS_HOST) gmake -C relaydoors/src start
 
 provision: sync #: Install all our dev packages on $SMARTOS_HOST
-	ssh root@$(SMARTOS_HOST) pkgin -y install clang gmake
+	ssh -t root@$(SMARTOS_HOST) pkgin -y install clang gmake rust
 
 sync: _smartos_host #: Sync our code to $SMARTOS_HOST
 	rsync -r . root@$(SMARTOS_HOST):~/relaydoors
 
 clean: _smartos_host #: Remove our code from $SMARTOS_HOST
-	ssh root@$(SMARTOS_HOST) gmake -C relaydoors/src clean
+	ssh -t root@$(SMARTOS_HOST) gmake -C relaydoors/src clean
 
 _smartos_host: # throw an error if $SMARTOS_HOST isn't defined
 ifndef SMARTOS_HOST

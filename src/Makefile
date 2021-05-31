@@ -1,13 +1,14 @@
+.PHONY: start
+start: stop start_examples
+	cd .. && cargo run
+
 .PHONY: test
-test: stop test_examples relaydoors
-	./relaydoors
+test:
+	cd .. && cargo test
 
-relaydoors: relaydoors.c
-	clang -lsocket -lnsl $< -o $@
-
-.PHONY: test_examples
-test_examples:
-	$(MAKE) -C examples test_all
+.PHONY: start_examples
+start_examples:
+	$(MAKE) -C examples start_all
 
 .PHONY: clean
 clean: stop

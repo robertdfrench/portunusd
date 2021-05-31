@@ -5,9 +5,9 @@ all: $(patsubst %.c,%.app,$(SOURCE_FILES));
 %.app: %.c
 	clang $< -o $@
 
-test_all: $(patsubst %.c,%.test,$(SOURCE_FILES));
+start_all: $(patsubst %.c,%.start,$(SOURCE_FILES));
 
-%.test: %.app %.stop
+%.start: %.app %.stop
 	(./$< &)
 
 stop_all: $(patsubst %.c,%.stop,$(SOURCE_FILES));
