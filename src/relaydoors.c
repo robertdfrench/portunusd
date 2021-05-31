@@ -27,20 +27,31 @@ typedef struct _relay_link {
 
 RelayLink establish_relay_link(RelayPlan rp) {
     int application_descriptor = open(rp.door_path, O_RDONLY);
-    if (application_descriptor == -1) err(1, "Could not open application door");
+    if (application_descriptor == -1) {
+        err(1, "Could not open application door");
+    }
 
     int network_descriptor = socket(AF_INET, SOCK_STREAM, 0);
-    if (network_descriptor == -1) err(1, "Could not open client connection");
+    if (network_descriptor == -1) {
+        err(1, "Could not open client connection");
+    }
 
     struct sockaddr_in in_sock;
     in_sock.sin_family = AF_INET;
     in_sock.sin_port = htons(rp.port);
     int pton_rc = inet_pton(AF_INET, rp.ip4_address, &in_sock.sin_addr);
-    if (pton_rc != 1) err(1, "Could not convert ip string to network addr");
+    if (pton_rc != 1) {
+        err(1, "Could not convert ip string to network addr");
+    }
 
-    int bind_rc = bind(network_descriptor, (struct sockaddr*)&in_sock,
-            sizeof(struct sockaddr_in));
-    if (bind_rc == -1) err(1, "Could not bind socket to network address");
+    int bind_rc = bind(
+        network_descriptor,
+        (struct sockaddr*)&in_sock,
+        sizeof(struct sockaddr_in)
+    );
+    if (bind_rc == -1) {
+        err(1, "Could not bind socket to network address");
+    }
 
     int listen_rc = listen(network_descriptor, 128);
     if (listen_rc == -1) err(1, "Could not begin listening to network");
@@ -57,7 +68,9 @@ void* relay_loop(void* link_ptr) {
         socklen_t out_socklen = sizeof(struct sockaddr);
         int client_fd = accept(rl.network_descriptor,
                 (struct sockaddr*)&out_sock, &out_socklen);
-        if (client_fd == -1) err(1, "Could not accept client connection");
+        if (client_fd == -1) {
+            err(1, "Could not accept client connection");
+        }
 
         // Prepare door args with client_fd
         door_desc_t w_descriptor;
@@ -69,7 +82,9 @@ void* relay_loop(void* link_ptr) {
 
         int result;
         result = door_call(rl.application_descriptor, &args);
-        if (result == -1) err(1, "Could not invoke application via its door");
+        if (result == -1) {
+            err(1, "Could not invoke application via its door");
+        }
 
         result = close(client_fd);
         if (result == -1) err(1, "Could not terminate client");

@@ -3,7 +3,7 @@ use std::num::ParseIntError;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-struct RelayPlan {
+pub struct RelayPlan {
     network_address: SocketAddr,
     door_address: PathBuf
 }
@@ -61,9 +61,6 @@ impl FromStr for RelayPlan {
     }
 }
 
-fn main() {
-    println!("Hello, world!");
-}
 
 #[cfg(test)]
 mod tests {
@@ -72,16 +69,20 @@ mod tests {
     #[test]
     fn can_parse_plan_config_statement() {
         let statement = "forward 0.0.0.0 port 80 to /var/run/app.door";
-        let plan = statement.parse::<RelayPlan>().expect("Failed to parse");
-        assert_eq!(plan.door_address.to_str().unwrap(), "/var/run/app.door");
+        let plan = statement.parse::<RelayPlan>().
+            expect("Failed to parse");
+        assert_eq!(
+            plan.door_address.to_str().unwrap(),
+            "/var/run/app.door"
+        );
         assert_eq!(plan.network_address.port(), 80);
         assert_eq!(plan.network_address.is_ipv4(), true);
     }
 
     #[test]
     fn parsing_supports_ipv6() {
-        let statement = "forward 2001:db8::1 port 80 to /var/run/app.door";
-        let plan = statement.parse::<RelayPlan>().expect("Failed to parse");
+        let statement = "forward :: port 80 to /var/run/app.door";
+        let plan = statement.parse::<RelayPlan>().unwrap();
         assert_eq!(plan.network_address.port(), 80);
         assert_eq!(plan.network_address.is_ipv4(), false);
     }
