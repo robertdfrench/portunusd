@@ -128,6 +128,8 @@ pub type door_id_t = libc::c_ulonglong;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
+    use std::path::Path;
     use std::ptr;
     use std::ffi::{CStr,CString};
 
@@ -163,27 +165,41 @@ mod tests {
             }
         };
 
-        let path = CString::new("/var/run/relaydoors_test_door").
-            unwrap();
+        // Clean up any doors which may still be lingering from a
+        // previous test.
+        let door_path = Path::new("/tmp/relaydoors_test");
+        if door_path.exists() {
+            fs::remove_file(door_path).unwrap();
+        }
+        let door_path = CString::new(door_path.to_str().unwrap())
+            .unwrap();
+
+        // Create a door for our "Capitalization Server"
         unsafe {
-            // Set up our "Capitalization Server"
+            // Create the (as yet unnamed) door descriptor.
             let server_door_fd = door_create(
                 capitalize_string, ptr::null(), 0
             );
-            let path_fd = libc::open(
-                path.as_ptr(),
+
+            // Create an empty file on the filesystem at `door_path`.
+            let door_path_fd = libc::open(
+                door_path.as_ptr(),
                 libc::O_RDWR | libc::O_CREAT | libc::O_EXCL,
                 0400
             );
-            libc::close(path_fd);
-            fattach(server_door_fd, path.as_ptr());
+            libc::close(door_path_fd);
+
+            // Give the door descriptor a name on the filesystem.
+            fattach(server_door_fd, door_path.as_ptr());
         }
 
+        // Send an uncapitalized string through the door and see what
+        // comes back!
         let original = CString::new("hello world").unwrap();
         unsafe {
             // Connect to the Capitalization Server through its door.
             let client_door_fd = libc::open(
-                path.as_ptr(),
+                door_path.as_ptr(),
                 libc::O_RDONLY
             );
 
