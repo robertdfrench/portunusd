@@ -50,23 +50,24 @@ of _abandoning the operating sytem_. It is a wildly unfamiliar approach to
 developing software, and throws away many tools that could be used to observe
 and debug the application at runtime.
 
-==== Thesis
+=== Thesis
 Doors enable a new (old?) model of network application development wherein the
 developers are responsible for maintaining and understanding a linear,
 synchronous task, while the operating system + web server work together on the
-scaling problem. When an application is idle, only a single copy of the
-application is needed in virtual memory, giving the host more opportunity to
-switch to lower-priority, offline workloads. When a request enters the system,
-it can be handled by an existing thread, which will summon relevant pages back
-into resident memory.  Subsequent simultaneous requests can be served with a
-minimum of operating system overhead. The cost of creating a new thread
-(comparable to a single CGI `fork(2)`, but much much cheaper than `execv(2)`) is
-incurred only when a new high-water mark of concurrency is reached. 
+scaling problem
 
-Doors alone will not handle scaling across the boundary of a single operating
-system instance, but a relayd-style collaboration with the firewall could
-facilitate this, assuming copies of the application are available on multiple
-hosts.
+* When an application is idle, only a single copy of is needed in memory.
+* When a request enters the system, it can be handled by an existing thread.
+* New threads are created only when a new peak of concurrency is reached.
+
+These qualities allow us to address our problem statement by developing network
+applications that feel like single-threaded UNIX command line tools, present a
+minimal expense when idle, and scale linearly on a per-request granularity.
+
+Of course, doors alone will not handle scaling across the boundary of a single
+operating system instance, but a relayd-style collaboration with the firewall
+could facilitate this, assuming copies of the application are available on
+multiple hosts.
 
 === Acknowledgements
 
