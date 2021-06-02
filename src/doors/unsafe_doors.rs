@@ -46,6 +46,10 @@ extern "C" {
     // doors are created (as descriptors) and THEN attached to a path on the filesystem by calling
     // FATTACH(3C).
     pub fn fattach(fildes: libc::c_int, path: *const libc::c_char) -> libc::c_int;
+
+
+    // Removes a door from the filesystem. See FDETACH(3C).
+    pub fn fdetach(path: *const libc::c_char) -> libc::c_int;
 }
 
 
@@ -141,7 +145,7 @@ mod tests {
         if door_path.exists() {
             fs::remove_file(door_path).unwrap();
         }
-        let door_path = CString::new(door_path.to_str().unwrap()).unwrap();
+        let door_path_cstring = CString::new(door_path.to_str().unwrap()).unwrap();
 
         // Create a door for our "Capitalization Server"
         unsafe {
@@ -149,19 +153,17 @@ mod tests {
             let server_door_fd = door_create(capitalize_string, ptr::null(), 0);
 
             // Create an empty file on the filesystem at `door_path`.
-            let create_rw_exclusive = libc::O_RDWR | libc::O_CREAT | libc::O_EXCL;
-            let door_path_fd = libc::open(door_path.as_ptr(), create_rw_exclusive, 0400);
-            libc::close(door_path_fd);
+            fs::File::create(door_path).unwrap();
 
             // Give the door descriptor a name on the filesystem.
-            fattach(server_door_fd, door_path.as_ptr());
+            fattach(server_door_fd, door_path_cstring.as_ptr());
         }
 
         // Send an uncapitalized string through the door and see what comes back!
         let original = CString::new("hello world").unwrap();
         unsafe {
             // Connect to the Capitalization Server through its door.
-            let client_door_fd = libc::open(door_path.as_ptr(), libc::O_RDONLY);
+            let client_door_fd = libc::open(door_path_cstring.as_ptr(), libc::O_RDONLY);
 
             // Pass `original` through the Captialization Server's door.
             let data_ptr = original.as_ptr();
@@ -180,6 +182,8 @@ mod tests {
                 rsize
             };
 
+            // This is where the magic happens. We block here while control is transferred to a
+            // separate thread which executes `capitalize_string` on our behalf.
             door_call(client_door_fd, &params);
 
             // Unpack the returned bytes and compare!
@@ -190,6 +194,15 @@ mod tests {
             // We did a naughty and called malloc, so we need to clean up. A PR for a Rustier way
             // to do this would be considered a personal favor.
             libc::free(rbuf as *mut libc::c_void);
+        }
+
+        // Clean up the door now that we are done.
+        unsafe {
+            // Make the path no longer be a door (it will go back to being a regular, empty file).
+            fdetach(door_path_cstring.as_ptr());
+
+            // Remove the regular, empty file which had been masked by the door.
+            fs::remove_file(door_path).unwrap();
         }
     }
 }

@@ -2,7 +2,7 @@ use libc;
 use std::os::unix::io::RawFd;
 use std::path::Path;
 use std::ptr;
-use unsafe_doors;
+mod unsafe_doors;
 
 pub type ServerProcedure = extern "C" fn(
 	cookie: *const libc::c_void,
@@ -18,9 +18,10 @@ pub struct DoorFrame {
 }
 
 impl DoorFrame {
-    pub fn new(path: Path, server_procedure: ServerProcedure) -> Self {
+    pub fn new(path: &Path, server_procedure: ServerProcedure) -> Self {
         let descriptor = unsafe {
             unsafe_doors::door_create(server_procedure, ptr::null(), 0)
         };
+        Self { descriptor }
     }
 }
