@@ -7,10 +7,10 @@ sequenceDiagram
     relaydoors->>Door: Open
     relaydoors->>relaydoors: listen on port 80
     loop Handle Requests
-        Client->>+relaydoors: Open TCP connection
-        relaydoors->>+Application: Forward client file descriptor via door_call
-        Client->>+Application: Zero-copy Request
-        Application->>-Client: Zero-copy Response
-        Application->>-relaydoors: door_return
-        relaydoors->>-Client: Close TCP connection
+        Client->>+relaydoors: Send HTTP Request
+        relaydoors->>relaydoors: filter / decrypt request
+        relaydoors->>+Application: Forward request via door_call
+        Application->>-relaydoors: Send response via door_return
+        relaydoors->>relaydoors: (optionally) encrypt response
+        relaydoors->>-Client: Send HTTP Response
     end
