@@ -1,5 +1,5 @@
-== portunus
-_Like relayd, but with doors._
+== Portunus
+_The god of doors and ports_
 
 `portunus` is an avant-garde application server inspired by OpenBSD's
 https://github.com/openbsd/src/tree/master/usr.sbin/httpd[`relayd`] and heirloom
