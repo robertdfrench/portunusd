@@ -1,20 +1,20 @@
-== relaydoors
+== portunus
 _Like relayd, but with doors._
 
-`relaydoors` is an avant-garde application server inspired by OpenBSD's
+`portunus` is an avant-garde application server inspired by OpenBSD's
 https://github.com/openbsd/src/tree/master/usr.sbin/httpd[`relayd`] and heirloom
 UNIX
 https://developer.ibm.com/technologies/linux/articles/au-spunix-inetd/[`inetd`].
 It listens for an incoming network connection, forwarding the session socket
 descriptor over an https://github.com/robertdfrench/revolving-door[illumos door]
-to the intended application.  `relaydoors` maps each connected port to a door on
+to the intended application.  `portunus` maps each connected port to a door on
 the filesystem provided by the target application.
 
 image:diagrams/startup-and-request-handling.png[]
 
-The main goal of `relaydoors` is to facilitate the scaling of single-threaded
+The main goal of `portunus` is to facilitate the scaling of single-threaded
 applications. Under the `inetd` model, a new process is created to handle every
-request. By leveraging doors, `relaydoors` can create a new thread in the
+request. By leveraging doors, `portunus` can create a new thread in the
 application process only when a new highwater mark of concurrency has been
 reached; otherwise, existing threads will be re-used to handle subsequent
 requests.
@@ -67,10 +67,13 @@ minimal expense when idle, and scale linearly on a per-request granularity.
 Of course, doors alone will not handle scaling across the boundary of a single
 operating system instance, but a relayd-style collaboration with the firewall
 could facilitate this, assuming copies of the application are available on
-multiple hosts.
+multiple hosts. This is where `portunus` comes in.
 
 === Acknowledgements
 
 The social media preview image is by [Loudon
 dodd](https://commons.wikimedia.org/w/index.php?title=User:Loudon_dodd) - Own
 work, [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0).
+
+Many obscure illumos / Rust / Doors questions were answered by @jasonbking in
+his spare time, for no other purpose than to help a stranger with questions.

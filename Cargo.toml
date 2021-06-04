@@ -1,5 +1,5 @@
 [package]
-name = "relaydoors"
+name = "portunus"
 version = "0.1.0"
 authors = ["Robert D. French <robert@robertdfrench.me>"]
 edition = "2018"
