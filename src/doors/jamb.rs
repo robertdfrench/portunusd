@@ -18,6 +18,10 @@ impl Jamb {
         let path = path.as_ref().to_owned();
         Ok(Self { path })
     }
+
+    pub fn to_str(&self) -> Option<&str> {
+        self.path.to_str()
+    }
 }
 
 impl Drop for Jamb {
