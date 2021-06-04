@@ -71,6 +71,6 @@ multiple hosts.
 
 === Acknowledgements
 
-The social media preview image is
-https://www.flickr.com/photos/vergio_graffito/4623002636/[Relay Sonze] by
-https://www.flickr.com/photos/vergio_graffito/[Vergio Graffito].
+The social media preview image is by [Loudon
+dodd](https://commons.wikimedia.org/w/index.php?title=User:Loudon_dodd) - Own
+work, [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0).
