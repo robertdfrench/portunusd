@@ -141,7 +141,7 @@ mod tests {
         };
 
         // Clean up any doors which may still be lingering from a previous test.
-        let door_path = Path::new("/tmp/relaydoors_test");
+        let door_path = Path::new("/tmp/relaydoors_test_f431a5");
         if door_path.exists() {
             fs::remove_file(door_path).unwrap();
         }
@@ -165,7 +165,7 @@ mod tests {
             // Connect to the Capitalization Server through its door.
             let client_door_fd = libc::open(door_path_cstring.as_ptr(), libc::O_RDONLY);
 
-            // Pass `original` through the Captialization Server's door.
+            // Pass `original` through the Capitalization Server's door.
             let data_ptr = original.as_ptr();
             let data_size = 12;
             let desc_ptr = ptr::null();
