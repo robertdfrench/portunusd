@@ -1,6 +1,6 @@
-extern crate relaydoors;
+extern crate portunus;
 
-use relaydoors::relay_plan::RelayPlan;
+use portunus::relay_plan::RelayPlan;
 use std::net::{TcpListener, TcpStream};
 use std::os::unix::io::{IntoRawFd, RawFd};
 

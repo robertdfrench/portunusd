@@ -9,17 +9,18 @@
 #![allow(non_camel_case_types)]
 use libc;
 
+pub type door_server_procedure_t = extern "C" fn(
+    cookie: *const libc::c_void,
+    argp: *const libc::c_char,
+    arg_size: libc::size_t,
+    dp: *const door_desc_t,
+    n_desc: libc::c_uint,
+);
 
 extern "C" {
     // Turns a function into a file descriptor.  See DOOR_CREATE(3C)
     pub fn door_create(
-        server_procedure: extern "C" fn(
-            cookie: *const libc::c_void,
-            argp: *const libc::c_char,
-            arg_size: libc::size_t,
-            dp: *const door_desc_t,
-            n_desc: libc::c_uint,
-        ),
+        server_procedure: door_server_procedure_t,
         cookie: *const libc::c_void,
         attributes: door_attr_t,
     ) -> libc::c_int;
