@@ -1,16 +1,16 @@
 sequenceDiagram
     participant Client
-    participant relaydoors
+    participant portunus
     participant Door
     participant Application
     Application->>Door: Create /var/run/app.door
-    relaydoors->>Door: Open
-    relaydoors->>relaydoors: listen on port 80
+    portunus->>Door: Open
+    portunus->>portunus: listen on port 80
     loop Handle Requests
-        Client->>+relaydoors: Send HTTP Request
-        relaydoors->>relaydoors: filter / decrypt request
-        relaydoors->>+Application: Forward request via door_call
-        Application->>-relaydoors: Send response via door_return
-        relaydoors->>relaydoors: (optionally) encrypt response
-        relaydoors->>-Client: Send HTTP Response
+        Client->>+portunus: Send HTTP Request
+        portunus->>portunus: filter / decrypt request
+        portunus->>+Application: Forward request via door_call
+        Application->>-portunus: Send response via door_return
+        portunus->>portunus: (optionally) encrypt response
+        portunus->>-Client: Send HTTP Response
     end
