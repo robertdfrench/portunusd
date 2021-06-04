@@ -1,5 +1,5 @@
 == Portunus
-_The god of doors and ports_
+_The god of doors and ports._
 
 `portunus` is an avant-garde application server inspired by OpenBSD's
 https://github.com/openbsd/src/tree/master/usr.sbin/httpd[`relayd`] and heirloom
@@ -71,9 +71,10 @@ multiple hosts. This is where `portunus` comes in.
 
 === Acknowledgements
 
-The social media preview image is by [Loudon
-dodd](https://commons.wikimedia.org/w/index.php?title=User:Loudon_dodd) - Own
-work, [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0).
+The social media preview image is by
+https://commons.wikimedia.org/w/index.php?title=User:Loudon_dodd[Loudon dodd] -
+Own work, https://creativecommons.org/licenses/by-sa/3.0[CC BY-SA 3.0].
 
-Many obscure illumos / Rust / Doors questions were answered by @jasonbking in
-his spare time, for no other purpose than to help a stranger with questions.
+Many obscure illumos / Rust / Doors questions were answered by
+https://github.com/jasonbking[@jasonbking] in his spare time, for no other
+purpose than to help a stranger with questions.
