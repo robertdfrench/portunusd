@@ -1,7 +1,7 @@
 == Interface with the Doors API
 _What are doors? Are they friendly? Why am I on this webpage?_
  
-image:tldr.gif
+image::tldr.gif[]
 
 Doors are like
 https://lists.freebsd.org/pipermail/freebsd-performance/2005-February/001143.html[Unix
