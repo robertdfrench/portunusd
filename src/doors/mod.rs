@@ -1,34 +1,51 @@
-mod casing;
-mod jamb;
+mod native;
+mod pathutils;
 
-use std::fs::File;
-use std::io::{Error, ErrorKind, Result};
-use std::os::unix::io::FromRawFd;
-use std::path::Path;
+use libc;
+use pathutils::{Jamb,JambError};
 use std::ptr;
+use std::ffi;
+use std::convert::From;
 
 
 pub struct Door {
-    location: jamb::Jamb,
-    knob: File
+    jamb: Jamb,
+    descriptor: libc::c_int
+}
+
+#[derive(Debug)]
+pub enum DoorError {
+    Jamb(JambError),
+    DoorCreate(libc::c_int),
+    Fattach(libc::c_int)
+}
+
+impl From<JambError> for DoorError {
+    fn from(error: JambError) -> Self {
+        DoorError::Jamb(error)
+    }
 }
 
 impl Door {
-    pub fn hang<P: AsRef<Path>>(path: P, f: casing::door_server_procedure_t) -> Result<Self> {
-        let location = jamb::Jamb::install(path)?;
-        let descriptor = unsafe { casing::door_create(f, ptr::null(), 0) };
-        let filename = location.to_str().ok_or(Error::new(ErrorKind::Other, "garbled path"))?;
-        unsafe { casing::fattach(descriptor, filename.as_ptr() as *const i8); }
-        let knob = unsafe { File::from_raw_fd(descriptor) };
-        Ok(Door{ location, knob })
+    pub fn hang(path: &ffi::CStr, f: native::door_server_procedure_t) -> Result<Self,DoorError> {
+        let jamb = Jamb::install(&path)?;
+        let descriptor = Self::create(f)?;
+        match unsafe{ native::fattach(descriptor, path.as_ptr()) } {
+            -1 => Err(DoorError::Fattach(unsafe{ *libc::___errno() })),
+            _ => Ok(Self{ jamb, descriptor })
+        }
+    }
+
+    fn create(f: native::door_server_procedure_t) -> Result<libc::c_int,DoorError> {
+        match unsafe { native::door_create(f, ptr::null(), 0) } {
+            -1 => Err(DoorError::DoorCreate(unsafe{ *libc::___errno() })),
+            descriptor => Ok(descriptor)
+        }
     }
 }
 
 impl Drop for Door {
     fn drop(&mut self) {
-        // At this point (dropping) we know the filename will unwrap safely, because it did so
-        // while creating the file.
-        let filename = self.location.to_str().unwrap();
-        unsafe { casing::fdetach(filename.as_ptr() as *const i8); }
+        unsafe{ libc::close(self.descriptor) };
     }
 }

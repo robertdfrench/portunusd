@@ -1,4 +1,4 @@
-// Unsafe Wrapper for the native Doors API
+// Unsafe Declarations for the native Doors API
 //
 // This module merely re-exports the subset of the illumos doors api  that we need for this
 // project. It makes no attempt at safety or ergonomics. 

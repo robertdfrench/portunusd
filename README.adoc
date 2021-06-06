@@ -5,10 +5,11 @@ _The god of doors and ports._
 https://github.com/openbsd/src/tree/master/usr.sbin/httpd[`relayd`] and heirloom
 UNIX
 https://developer.ibm.com/technologies/linux/articles/au-spunix-inetd/[`inetd`].
-It listens for an incoming network connection, forwarding the session socket
-descriptor over an https://github.com/robertdfrench/revolving-door[illumos door]
-to the intended application.  `portunus` maps each connected port to a door on
-the filesystem provided by the target application.
+It listens for an incoming network connection, forwarding the incoming data over
+an https://github.com/robertdfrench/revolving-door[illumos door] to the intended
+application, and returning the response in a similar manner.  `portunus` maps
+each connected port to a door on the filesystem provided by the target
+application.
 
 image:diagrams/startup-and-request-handling.png[]
 
@@ -76,5 +77,4 @@ https://commons.wikimedia.org/w/index.php?title=User:Loudon_dodd[Loudon dodd] -
 Own work, https://creativecommons.org/licenses/by-sa/3.0[CC BY-SA 3.0].
 
 Many obscure illumos / Rust / Doors questions were answered by
-https://github.com/jasonbking[@jasonbking] in his spare time, for no other
-purpose than to help a stranger with questions.
+https://github.com/jasonbking[@jasonbking] in his spare time.
