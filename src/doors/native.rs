@@ -47,10 +47,6 @@ extern "C" {
     // doors are created (as descriptors) and THEN attached to a path on the filesystem by calling
     // FATTACH(3C).
     pub fn fattach(fildes: libc::c_int, path: *const libc::c_char) -> libc::c_int;
-
-
-    // Removes a door from the filesystem. See FDETACH(3C).
-    pub fn fdetach(path: *const libc::c_char) -> libc::c_int;
 }
 
 
