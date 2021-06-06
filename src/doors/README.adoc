@@ -1,5 +1,4 @@
 == Interface with the Doors API
-_What are doors? Are they friendly? Why am I on this webpage?_
  
 image::tldr.gif[]
 
@@ -24,4 +23,5 @@ safe interface for the rest of the application.
 The link:pathutils.rs[pathutils.rs] module provides an extra trick to simplify
 door creation: a https://en.wikipedia.org/wiki/Jamb[Jamb] provides a temporary,
 https://www.reddit.com/r/illumos/comments/babxsl/doors_api_tutorial/eke7es9/[correctly
-constructes] filesystem path from which we can hang a door.
+constructed] filesystem path from which we can hang a door. When the Jamb object
+is Dropped, the corresponding file is automatically deleted.
