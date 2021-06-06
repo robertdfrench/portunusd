@@ -1,0 +1,8 @@
+[package]
+name = "hello_web"
+version = "0.1.0"
+authors = ["Robert D. French <robert@robertdfrench.me>"]
+edition = "2018"
+
+[dependencies]
+portunus = { path = "../../lib" }

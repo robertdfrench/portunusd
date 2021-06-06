@@ -195,9 +195,6 @@ mod tests {
 
         // Clean up the door now that we are done.
         unsafe {
-            // Make the path no longer be a door (it will go back to being a regular, empty file).
-            fdetach(door_path_cstring.as_ptr());
-
             // Remove the regular, empty file which had been masked by the door.
             fs::remove_file(door_path).unwrap();
         }
