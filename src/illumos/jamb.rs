@@ -55,7 +55,7 @@ mod tests {
         {
             // Create the jamb inside a limited scope, and demonstrate that it is detectable on the
             // filesystem.
-            let jamb = Jamb::install(&path).unwrap();
+            let _jamb = Jamb::install(&path).unwrap();
             assert_eq!(exists(&path), true);
         }
 

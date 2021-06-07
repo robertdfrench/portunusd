@@ -194,9 +194,6 @@ mod tests {
         }
 
         // Clean up the door now that we are done.
-        unsafe {
-            // Remove the regular, empty file which had been masked by the door.
-            fs::remove_file(door_path).unwrap();
-        }
+        fs::remove_file(door_path).unwrap();
     }
 }

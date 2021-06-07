@@ -6,13 +6,16 @@ help: #: Build this help menu from Makefile target comments (default)
 test: #: Run unit tests 
 	cargo test
 
-run: #: Stand up an instance of portunusd with the included example applications
+run: #: Stand up an instance of portunus with the included example applications
 	cargo run
 
 provision: #: Install all our dev packages
 	pkgin -y install clang gmake rust
 
-clean: _smartos_host #: Clean up so we can rebuild from scratch
+clean: #: Clean up so we can rebuild from scratch
 	cargo clean
 
-.PHONY: help test run provision clean
+hello_web: #: Launch the hello_web example application
+	cargo run --example hello_web
+
+.PHONY: help test run provision clean hello_web
