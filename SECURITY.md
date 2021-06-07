@@ -1,4 +1,4 @@
-== Security Policy
+## Security Policy
 
 `portnus` does not even work right now, so there are no supported versions.
 Until the project is stabilized, security problems can be reported as issues.
