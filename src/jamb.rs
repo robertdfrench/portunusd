@@ -1,7 +1,22 @@
+/* 
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Copyright 2021 Robert D. French
+ */
 use libc;
 use std::ffi;
 
-// It's where you hang a door: https://www.hgtv.com/how-to/home-improvement/how-to-hang-a-door
+/// It's where you hang a door.
+///
+/// According to [hgtv], the "Jamb" is the part of the door system where the hinges are mounted,
+/// and is thus the support system from which we can suspend (or "hang") a door. Stretching this
+/// analogy obnoxiously far, a [Jamb] is a structure which, when successfully constructed,
+/// guarantees a filesystem entry appropriate for [fattach]ing to a door descriptor.
+///
+/// [hgtv]: https://www.hgtv.com/how-to/home-improvement/how-to-hang-a-door
+/// [fattach]: https://illumos.org/man/3c/fattach
 pub struct Jamb {
     path: ffi::CString,
     descriptor: libc::c_int

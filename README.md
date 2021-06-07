@@ -1,17 +1,14 @@
-== Portunus
-_The god of doors and ports._
+# Portunus
+*The god of doors and ports.*
 
 `portunus` is an avant-garde application server inspired by OpenBSD's
-https://github.com/openbsd/src/tree/master/usr.sbin/httpd[`relayd`] and heirloom
-UNIX
-https://developer.ibm.com/technologies/linux/articles/au-spunix-inetd/[`inetd`].
-It listens for an incoming network connection, forwarding the incoming data over
-an https://github.com/robertdfrench/revolving-door[illumos door] to the intended
-application, and returning the response in a similar manner.  `portunus` maps
-each connected port to a door on the filesystem provided by the target
-application.
+[`relayd`][1] and heirloom UNIX [`inetd`][2].  It listens for an incoming
+network connection, forwarding the incoming data over an [illumos door][3] to
+the intended application, and returning the response in a similar manner.
+`portunus` maps each connected port to a door on the filesystem provided by the
+target application.
 
-image:diagrams/startup-and-request-handling.png[]
+![Startup and Request Handling](diagrams/startup-and-request-handling.png)
 
 The main goal of `portunus` is to facilitate the scaling of single-threaded
 applications. Under the `inetd` model, a new process is created to handle every
@@ -20,7 +17,7 @@ application process only when a new highwater mark of concurrency has been
 reached; otherwise, existing threads will be re-used to handle subsequent
 requests.
 
-=== Problem Statement
+### Problem Statement
 We want our network-facing applications to scale according to user demand. We
 want to minimize the resource cost of our applications when they are idle, and
 we want to keep our costs linear in terms of demand. We want to
@@ -47,11 +44,11 @@ demand, including scaling down to zero memory / cpu usage when idle, but the
 cost of invoking `execv(2)` for each request can hamper throughput.
 
 The postmodern "Serverless" approach satisfies these criteria, but at the cost
-of _abandoning the operating sytem_. It is a wildly unfamiliar approach to
+of *abandoning the operating sytem*. It is a wildly unfamiliar approach to
 developing software, and throws away many tools that could be used to observe
 and debug the application at runtime.
 
-=== Thesis
+### Thesis
 Doors enable a new (old?) model of network application development wherein the
 developers are responsible for maintaining and understanding a linear,
 synchronous task, while the operating system + web server work together on the
@@ -70,11 +67,17 @@ operating system instance, but a relayd-style collaboration with the firewall
 could facilitate this, assuming copies of the application are available on
 multiple hosts. This is where `portunus` comes in.
 
-=== Acknowledgements
+### Acknowledgements
 
-The social media preview image is by
-https://commons.wikimedia.org/w/index.php?title=User:Loudon_dodd[Loudon dodd] -
-Own work, https://creativecommons.org/licenses/by-sa/3.0[CC BY-SA 3.0].
+The social media preview image is by [Loudon dodd][4] - Own work, [CC BY-SA
+3.0][5].
 
-Many obscure illumos / Rust / Doors questions were answered by
-https://github.com/jasonbking[@jasonbking] in his spare time.
+Many obscure illumos / Rust / Doors questions were answered by [@jasonbking][6].
+
+<!-- References -->
+[1]: https://github.com/openbsd/src/tree/master/usr.sbin/httpd
+[2]: https://developer.ibm.com/technologies/linux/articles/au-spunix-inetd/
+[3]: https://github.com/robertdfrench/revolving-door
+[4]: https://commons.wikimedia.org/w/index.php?title=User:Loudon_dodd
+[5]: https://creativecommons.org/licenses/by-sa/3.0
+[6]: https://github.com/jasonbking

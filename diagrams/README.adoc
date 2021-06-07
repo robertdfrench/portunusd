@@ -1,7 +1,0 @@
-== Mermaid Diagrams
-The diagrams in this directory were produced with the
-https://mermaid-js.github.io/mermaid-live-editor/[Mermaid Live Editor]. I have not yet taken the
-effort to automate them, nor learned how to produce similar diagrams in +pic+.
-
-If you have never heard of https://mermaid-js.github.io/mermaid/#/[Mermaid] before, it is an
-outstanding diagramming tool.
