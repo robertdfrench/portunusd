@@ -4,6 +4,7 @@
 #
 # Copyright 2021 Robert D. French
 
+
 # The default task in our makefile, "help", will print a small table of
 # user-invocable targets and corresponding descriptions. This convention is
 # borrowed from Rails' "rake" command, and makes it easy to use a Makefile as
@@ -13,6 +14,7 @@ help: #: Build this help menu from Makefile target comments (default)
 	@echo "USAGE:\n"
 	@awk -F ':' 'NF >= 3 { OFS="#"; print "-",$$1,$$3 }' $(MAKEFILE_LIST) \
 		| sort | column -s "#" -t
+
 
 # Remote development can be a pain. The "smartos" macro makes it possible to run
 # commands either from a smartos host or from a workstation which has ssh
@@ -26,6 +28,13 @@ smartos=@$(MAKE) sync \
 		bash -c 'true; set -e; cd portunus; set -x; $(1)'
 endif
 
+
+# This target syncs code from your local workstation to a remote smartos host.
+# It doesn't use the "smartos" macro defined above, because it really only makes
+# sense to run from your local workstation. It requires an environment variable
+# called $SMARTOS_HOST, which should contain the hostname of the remote smartos
+# system.
+#
 sync: #: Push latest code to development host
 ifndef SMARTOS_HOST
 	$(error You must define $$SMARTOS_HOST before proceeding)
@@ -33,14 +42,24 @@ else
 	rsync --delete --exclude="target/*" -r . "${SMARTOS_HOST}:~/portunus"
 endif
 
-test: #: Run unit tests 
-	$(call smartos, cargo test)
 
-run: #: Stand up an instance of portunus with the included example applications
-	$(call smartos, cargo run)
-
+# This task tracks what packages our smartos system needs in order to build
+# portunus. It is idempotent, so we could provisionally run it as a
+# pre-requisite of every other task, but it takes a few seconds and does not
+# usually make any changes. So instead, we separate it, and run it as needed (as
+# we change the package list).
 provision: #: Install all our dev packages
 	$(call smartos, pfexec pkgin -y install clang gmake rust)
+
+
+# This task generates documentation and opens a web browser, so it should only
+# run on the developer's workstation.
+#
+docs: #: Build documentation from Rust source files
+	cargo doc --open
+
+test: #: Run unit tests 
+	$(call smartos, cargo test)
 
 clean: #: Clean up so we can rebuild from scratch
 	$(call smartos, cargo clean)
@@ -48,4 +67,4 @@ clean: #: Clean up so we can rebuild from scratch
 hello_web: #: Launch the hello_web example application
 	$(call smartos, cargo run --example hello_web)
 
-.PHONY: help test run provision clean hello_web sync
+.PHONY: help provision docs test run clean hello_web sync
