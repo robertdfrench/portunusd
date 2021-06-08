@@ -6,6 +6,13 @@
  * Copyright 2021 Robert D. French
  */
 
+//! Portunus - The God of Ports and Doors
+//!
+//! Portunus is a network application server, inspired by relayd and inetd, which aims to ease the
+//! scaling of single-threaded request/response-style applications: web applications, DNS queries,
+//! etc. Portunus allows applications to embrace the "serverless" style of development, but without
+//! throwing away all the luxuries of the operating system.
+
 pub mod illumos;
 pub mod jamb;
 #[cfg(test)]

@@ -19,6 +19,19 @@
 #![allow(non_camel_case_types)]
 use libc;
 
+/// Signature for a Door Server Procedure
+///
+/// All "Server Procedures" (functions which respond to `door_call` requests) must use this type
+/// signature. Because `portunus` neither shares descriptors with applications nor makes use of the
+/// `cookie` field, we can consider only:
+///
+/// * `argp`
+/// * `arg_size`
+///
+/// which together specify an array of bytes.  See [`DOOR_CREATE(3C)`] for examples and further
+/// detail.
+///
+/// [`DOOR_CREATE(3C)`]: https://illumos.org/man/3c/door_create
 pub type door_server_procedure_t = extern "C" fn(
     cookie: *const libc::c_void,
     argp: *const libc::c_char,
@@ -52,11 +65,12 @@ extern "C" {
     ) -> !; // Like EXIT(3C) or EXECVE(2), this function is terminal.
 }
 
-
-// This is your daily driver, right here. `data_ptr` and `data_size` represent the bytes you want
-// to send to the server. `rbuf` and `rsize` represent a space you've set aside to store bytes that
-// come back from the server. `desc_ptr` and `desc_num` are for passing any file / socket / door
-// descriptors you'd like the server to be able to access. It is described in more detail below.
+/// Arguments for, and Return Values from, a Door invocation.
+///
+/// This is your daily driver, right here. `data_ptr` and `data_size` represent the bytes you want
+/// to send to the server. `rbuf` and `rsize` represent a space you've set aside to store bytes that
+/// come back from the server. `desc_ptr` and `desc_num` are for passing any file / socket / door
+/// descriptors you'd like the server to be able to access. It is described in more detail below.
 #[repr(C)]
 pub struct door_arg_t {
     pub data_ptr: *const libc::c_char,
