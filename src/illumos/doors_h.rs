@@ -41,7 +41,17 @@ pub type door_server_procedure_t = extern "C" fn(
 );
 
 extern "C" {
-    // Turns a function into a file descriptor.  See DOOR_CREATE(3C)
+    /// Turns a function into a file descriptor.
+    ///
+    /// The function in question must match the "Server Procedure" signature
+    /// [door_server_procedure_t][1]. Portunus does not currently use the `cookie` argument. Since
+    /// it will not send any file descriptors, applications are free to set `attributes` to
+    /// [DOOR_REFUSE_DESC].
+    ///
+    /// See [`DOOR_CREATE(3C)`] for more details.
+    ///
+    /// [1]: type.door_server_procedure_t.html
+    /// [`DOOR_CREATE(3C)`]: https://illumos.org/man/3c/door_create
     pub fn door_create(
         server_procedure: door_server_procedure_t,
         cookie: *const libc::c_void,
@@ -95,8 +105,24 @@ pub struct door_desc_t {
 }
 
 
-// Door behavior options, as specified in the "Description" section of DOOR_CREATE(3C).
+/// Door config options
+///
+/// Specified in the "Description" section of [`DOOR_CREATE(3C)`]. The only option needed by
+/// Portunus Applications is [DOOR_REFUSE_DESC].
+///
+/// [`DOOR_CREATE(3C)`]: https://illumos.org/man/3c/door_create#DESCRIPTION
 pub type door_attr_t = libc::c_uint;
+
+
+/// Prohibit clients from sending file / socket / door descriptors
+///
+/// Specified in the "Description" section of [`DOOR_CREATE(3C)`]. This flag tells the illumos
+/// kernel that we do not want door clients (in this case, the `portunus` server) to be able to
+/// forward their file, socket, or door descriptors to us. *This may change in a future version of
+/// the [APP][1].* 
+///
+/// [APP]: https://github.com/robertdfrench/portunus/blob/trunk/etc/APP.md
+/// [`DOOR_CREATE(3C)`]: https://illumos.org/man/3c/door_create#DESCRIPTION
 pub const DOOR_REFUSE_DESC: door_attr_t = 0x40; // Disable file descriptor passing.
 
 

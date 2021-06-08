@@ -8,7 +8,7 @@ the intended application, and returning the response in a similar manner.
 `portunus` maps each connected port to a door on the filesystem provided by the
 target application.
 
-![Startup and Request Handling](diagrams/startup-and-request-handling.png)
+![Startup and Request Handling](etc/diagrams/startup-and-request-handling.png)
 
 The main goal of `portunus` is to facilitate the scaling of single-threaded
 applications. Under the `inetd` model, a new process is created to handle every
@@ -68,7 +68,6 @@ could facilitate this, assuming copies of the application are available on
 multiple hosts. This is where `portunus` comes in.
 
 ### Acknowledgements
-
 The social media preview image is by [Loudon dodd][4] - Own work, [CC BY-SA
 3.0][5].
 
