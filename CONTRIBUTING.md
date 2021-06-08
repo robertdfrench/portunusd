@@ -1,5 +1,6 @@
 ## Contributing
-*I am flattered and humbled that you would even consider!*
+*I am humbled that you would even consider! All I ask is that you:*
+
 
 ### Add Your Copyright Notice
 Your PR should include an appropriate copyright notice on any file that you
@@ -21,6 +22,7 @@ add your copyright notice like so:
  */
 ```
 
+
 ### Add the Best Documentation you can Muster
 The Portunus source code is documented in American English, with an attempt to
 use the 17th Edition of the Chicago Manual of Style (as best it can be stretched
@@ -30,6 +32,7 @@ writing is not your greatest passion, *I would be glad to help you*.
 It's okay if your writing is imperfect, but it's not okay to expect the code to 
 document itself.
 
-### Follow the Code of Conduct
+
+### Read and Follow the Code of Conduct
 It's the same [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md) that
 GitHub encourages for new projects.
