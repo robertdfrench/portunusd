@@ -6,6 +6,7 @@
  * Copyright 2021 Robert D. French
  */
 
+
 //! Unsafe Declarations for the illumos Doors API
 //!
 //! This module merely re-exports the subset of the illumos doors api that we need for this
@@ -18,6 +19,7 @@
 
 #![allow(non_camel_case_types)]
 use libc;
+
 
 /// Signature for a Door Server Procedure
 ///
@@ -40,6 +42,7 @@ pub type door_server_procedure_t = extern "C" fn(
     n_desc: libc::c_uint,
 );
 
+
 extern "C" {
     /// Turns a function into a file descriptor.
     ///
@@ -59,21 +62,45 @@ extern "C" {
     ) -> libc::c_int;
 
 
-    // Invokes a function in another process (assuming `d` is a file descriptor for a door which
-    // points to a function in another process).  See DOOR_CALL(3C).
+    /// Invoke a function in another process.
+    ///
+    /// Assuming `d` is a descriptor for a door which points to a function in another process, this
+    /// function can use an instance of [door_arg_t] to send data to and receive data from the
+    /// function described by `d`.
+    ///
+    /// See [`DOOR_CALL(3C)`] for more details.
+    ///
+    /// [`DOOR_CALL(3C)`]: https://illumos.org/man/3c/door_call
     pub fn door_call(d: libc::c_int, params: *const door_arg_t) -> libc::c_int;
 
 
-    // The inverse of `door_call`. Use this at the end of `server_procedure` in lieu of the
-    // traditional `return` statement to transfer control back to the process which originally
-    // issued `door_call`. See DOOR_RETURN(3C).
+    /// The inverse of `door_call` - return data and control to the calling process.
+    ///
+    /// Use this at the end of `server_procedure` in lieu of the traditional `return` statement to
+    /// transfer control back to the process which originally issued `door_call`. Like
+    /// [`EXECVE(2)`], this function is terminal from the perspective of the code which calls it.
+    ///
+    /// See [`DOOR_RETURN(3C)`].
+    ///
+    /// # Warning
+    /// 
+    /// It is [not yet clear][1] whether Rust structures are properly cleaned up upon
+    /// `door_return`. Further, because threads (and thus their state) are re-used between
+    /// requests, it is vitally important that any code calling `door_return` is able to purge
+    /// sensitive stack data in order to hamper an attacker's ability to exfiltrate the data of
+    /// other users.
+    ///
+    /// [`DOOR_RETURN(3C)`]: https://illumos.org/man/3c/door_return
+    /// [`EXECVE(2)`]: https://illumos.org/man/2/execve
+    /// [1]: https://github.com/robertdfrench/portunus/issues/6
     pub fn door_return(
         data_ptr: *const libc::c_char,
         data_size: libc::size_t,
         desc_ptr: *const door_desc_t,
         num_desc: libc::c_uint,
-    ) -> !; // Like EXIT(3C) or EXECVE(2), this function is terminal.
+    ) -> !;
 }
+
 
 /// Arguments for, and Return Values from, a Door invocation.
 ///
@@ -92,12 +119,14 @@ pub struct door_arg_t {
 }
 
 
-// For our purposes, this data structure and its constituent parts are mostly opaque *except* that
-// it holds any file / socket / door descriptors which we would like to pass between processes.
-// Rust does not support nested type declaration like C does, so we define each component
-// separately. See /usr/include/sys/doors.h for the original (nested) definition of this type and
-// https://github.com/robertdfrench/revolving-door/tree/master/A0_result_parameters for a visual
-// guide.
+/// Descriptor structure for `door_arg_t`
+///
+/// For our purposes, this data structure and its constituent parts are mostly opaque *except* that
+/// it holds any file / socket / door descriptors which we would like to pass between processes.
+/// Rust does not support nested type declaration like C does, so we define each component
+/// separately. See /usr/include/sys/doors.h for the original (nested) definition of this type and
+/// https://github.com/robertdfrench/revolving-door/tree/master/A0_result_parameters for a visual
+/// guide.
 #[repr(C)]
 pub struct door_desc_t {
     pub d_attributes: door_attr_t,
@@ -126,16 +155,21 @@ pub type door_attr_t = libc::c_uint;
 pub const DOOR_REFUSE_DESC: door_attr_t = 0x40; // Disable file descriptor passing.
 
 
-// This is not a real doors data structure *per se*, but rather the `d_data` component of the
-// `door_dest_t` type. It is defined in /usr/include/sys/doors.h.
+/// `d_data` component of `door_desc_t`
+///
+/// This is not a real doors data structure *per se*, but rather the `d_data` component of the
+/// `door_desc_t` type. It is defined in /usr/include/sys/doors.h.
 #[repr(C)]
 pub union door_desc_t__d_data {
     pub d_desc: door_desc_t__d_data__d_desc,
     d_resv: [libc::c_int; 5], /* Reserved by illumos for some undocumented reason */
 }
 
-// This is the `d_desc` component of the `d_data` union of the `door_desct_t` structure. See its
-// definition in /usr/include/sys/doors.h.
+
+/// `d_desc` component of `d_data`
+///
+/// This is the `d_desc` component of the `d_data` union of the `door_desct_t` structure. See its
+/// definition in /usr/include/sys/doors.h.
 #[derive(Copy,Clone)]
 #[repr(C)]
 pub struct door_desc_t__d_data__d_desc {
@@ -144,7 +178,8 @@ pub struct door_desc_t__d_data__d_desc {
 }
 
 
-// Some kind of door identifier. The doors API handles this for us, we don't really need to worry
-// about it. Or at least, if I should be worried about it, I'm in a lot of trouble.
+/// Opaque Door ID
+///
+/// Some kind of door identifier. The doors API handles this for us, we don't really need to worry
+/// about it. Or at least, if I should be worried about it, I'm in a lot of trouble.
 pub type door_id_t = libc::c_ulonglong;
-
