@@ -22,6 +22,23 @@
 pub mod doors_h;
 pub mod stropts_h;
 
+use libc;
+
+/// Good ole UNIX errno
+///
+/// `errno` is implemented in the libc crate, sortof. In real life, it's allegedly a macro or
+/// something. Can't be bothered to look it up. Point is, once we've done a goof, we call this to
+/// figure out which goof we've done.
+///
+/// See [`PERROR(3C)`], but don't think too hard about the fact that this is a function and that
+/// one doesn't seem to be.
+///
+/// [`PERROR(3C)`]: https://illumos.org/man/3c/errno
+pub fn errno() -> libc::c_int {
+    unsafe{ *libc::___errno() }
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -29,6 +46,15 @@ mod tests {
     use std::path::Path;
     use std::ptr;
     use std::ffi::{CStr,CString};
+
+    #[test]
+    fn errno_works() {
+        // This test will purposefully open a nonexistant file via the libc crate, and then check
+        // that errno is the expected value.
+        let badpath = CString::new("<(^_^)>").unwrap();
+        assert_eq!(libc::open(badpath.as_ptr(), libc::O_RDONLY), -1);
+        assert_eq!(errno(), libc::EFAULT);
+    }
 
     #[test]
     fn can_invoke_own_door() {
