@@ -52,8 +52,8 @@ mod tests {
         // This test will purposefully open a nonexistant file via the libc crate, and then check
         // that errno is the expected value.
         let badpath = CString::new("<(^_^)>").unwrap();
-        assert_eq!(libc::open(badpath.as_ptr(), libc::O_RDONLY), -1);
-        assert_eq!(errno(), libc::EFAULT);
+        assert_eq!(unsafe{ libc::open(badpath.as_ptr(), libc::O_RDONLY) }, -1);
+        assert_eq!(errno(), libc::ENOENT);
     }
 
     #[test]
