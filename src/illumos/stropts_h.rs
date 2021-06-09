@@ -24,4 +24,24 @@ extern "C" {
     /// [`BIND(3SOCKET)`]: https://illumos.org/man/3socket/bind
     /// [`FATTACH(3C)`]: https://illumos.org/man/3c/fattach
     pub fn fattach(fildes: libc::c_int, path: *const libc::c_char) -> libc::c_int;
+
+    /// Withdraw a door descriptor from the filesystem.
+    ///
+    /// After the door is detached from the filesystem, no new processes will be able to acquire
+    /// a descriptor by means of [`OPEN(2)`]. Processes which already have access to the door will
+    /// still be able to invoke it via [`DOOR_CALL(3C)`], and even forward the descriptor to other
+    /// processes via other socket or door connections. So, we can say this call stops new clients
+    /// from connecting to a door server unless an existing client shares its descriptor.
+    ///
+    /// [`DOOR_CALL(3C)`]: https://illumos.org/man/3c/door_call
+    /// [`OPEN(2)`]: https://illumos.org/man/2/open
+    pub fn fdetach(path: *const libc::c_char) -> libc::c_int;
+}
+
+
+#[cfg(test)]
+mod tests {
+    // See /src/illumos/mod.rs for tests. The doors_h and stropts_h modules rely on each other for
+    // complete functionality, so it's easier to test them together. The only reason they are
+    // defined separately is to mimic how they are defined in illumos' libc headers.
 }

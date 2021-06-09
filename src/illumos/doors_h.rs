@@ -49,7 +49,7 @@ extern "C" {
     /// The function in question must match the "Server Procedure" signature
     /// [door_server_procedure_t][1]. Portunus does not currently use the `cookie` argument. Since
     /// it will not send any file descriptors, applications are free to set `attributes` to
-    /// [DOOR_REFUSE_DESC].
+    /// [DOOR_REFUSE_DESC](constant.DOOR_REFUSE_DESC.html).
     ///
     /// See [`DOOR_CREATE(3C)`] for more details.
     ///
@@ -108,13 +108,22 @@ extern "C" {
 /// to send to the server. `rbuf` and `rsize` represent a space you've set aside to store bytes that
 /// come back from the server. `desc_ptr` and `desc_num` are for passing any file / socket / door
 /// descriptors you'd like the server to be able to access. It is described in more detail below.
+///
+/// See [`DOOR_CALL(3C)`] for more details.
+///
+/// [`DOOR_CALL(3C)`]: https://illumos.org/man/3c/door_call
 #[repr(C)]
 pub struct door_arg_t {
     pub data_ptr: *const libc::c_char,
+    /// Request data from the network to the Door Application
     pub data_size: libc::size_t,
+
     pub desc_ptr: *const door_desc_t,
+    /// Array of Descriptors -- unused by Portunus
     pub desc_num: libc::c_uint,
+
     pub rbuf: *const libc::c_char,
+    /// Response data from the Door Application to the network
     pub rsize: libc::size_t,
 }
 
@@ -124,9 +133,11 @@ pub struct door_arg_t {
 /// For our purposes, this data structure and its constituent parts are mostly opaque *except* that
 /// it holds any file / socket / door descriptors which we would like to pass between processes.
 /// Rust does not support nested type declaration like C does, so we define each component
-/// separately. See /usr/include/sys/doors.h for the original (nested) definition of this type and
-/// https://github.com/robertdfrench/revolving-door/tree/master/A0_result_parameters for a visual
-/// guide.
+/// separately. See [doors.h][1] for the original (nested) definition of this type and
+/// [revolving-doors][2] for a visual guide.
+///
+/// [1]: https://github.com/illumos/illumos-gate/blob/master/usr/src/uts/common/sys/door.h#L122
+/// [2]: https://github.com/robertdfrench/revolving-door/tree/master/A0_result_parameters
 #[repr(C)]
 pub struct door_desc_t {
     pub d_attributes: door_attr_t,
@@ -137,7 +148,7 @@ pub struct door_desc_t {
 /// Door config options
 ///
 /// Specified in the "Description" section of [`DOOR_CREATE(3C)`]. The only option needed by
-/// Portunus Applications is [DOOR_REFUSE_DESC].
+/// Portunus Applications is [DOOR_REFUSE_DESC](constant.DOOR_REFUSE_DESC.html).
 ///
 /// [`DOOR_CREATE(3C)`]: https://illumos.org/man/3c/door_create#DESCRIPTION
 pub type door_attr_t = libc::c_uint;
@@ -150,7 +161,7 @@ pub type door_attr_t = libc::c_uint;
 /// forward their file, socket, or door descriptors to us. *This may change in a future version of
 /// the [APP][1].* 
 ///
-/// [APP]: https://github.com/robertdfrench/portunus/blob/trunk/etc/APP.md
+/// [1]: https://github.com/robertdfrench/portunus/blob/trunk/etc/APP.md
 /// [`DOOR_CREATE(3C)`]: https://illumos.org/man/3c/door_create#DESCRIPTION
 pub const DOOR_REFUSE_DESC: door_attr_t = 0x40; // Disable file descriptor passing.
 
@@ -158,7 +169,10 @@ pub const DOOR_REFUSE_DESC: door_attr_t = 0x40; // Disable file descriptor passi
 /// `d_data` component of `door_desc_t`
 ///
 /// This is not a real doors data structure *per se*, but rather the `d_data` component of the
-/// `door_desc_t` type. It is defined in /usr/include/sys/doors.h.
+/// `door_desc_t` type. It is defined in [doors.h][1]. C allows for nested type definitions, while
+/// Rust does not, so we have to define each component as a separate entity.
+///
+/// [1]: https://github.com/illumos/illumos-gate/blob/master/usr/src/uts/common/sys/door.h#L122
 #[repr(C)]
 pub union door_desc_t__d_data {
     pub d_desc: door_desc_t__d_data__d_desc,
@@ -166,10 +180,12 @@ pub union door_desc_t__d_data {
 }
 
 
-/// `d_desc` component of `d_data`
+/// `d_desc` component of `door_desc_t`
 ///
 /// This is the `d_desc` component of the `d_data` union of the `door_desct_t` structure. See its
-/// definition in /usr/include/sys/doors.h.
+/// original definition in [doors.h][1].
+///
+/// [1]: https://github.com/illumos/illumos-gate/blob/master/usr/src/uts/common/sys/door.h#L122
 #[derive(Copy,Clone)]
 #[repr(C)]
 pub struct door_desc_t__d_data__d_desc {
@@ -183,3 +199,11 @@ pub struct door_desc_t__d_data__d_desc {
 /// Some kind of door identifier. The doors API handles this for us, we don't really need to worry
 /// about it. Or at least, if I should be worried about it, I'm in a lot of trouble.
 pub type door_id_t = libc::c_ulonglong;
+
+
+#[cfg(test)]
+mod tests {
+    // See /src/illumos/mod.rs for tests. The doors_h and stropts_h modules rely on each other for
+    // complete functionality, so it's easier to test them together. The only reason they are
+    // defined separately is to mimic how they are defined in illumos' libc headers.
+}
