@@ -15,6 +15,8 @@
 
 pub mod illumos;
 pub mod jamb;
+pub mod server_procedure;
+
 #[cfg(test)]
 mod tests {
     #[test]
