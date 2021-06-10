@@ -19,7 +19,7 @@
 //! [doors]: https://github.com/robertdfrench/revolving-door#revolving-doors
 //! [libc]: https://github.com/rust-lang/libc/tree/master/src/unix/solarish
 
-pub mod doors_h;
+pub mod door_h;
 pub mod stropts_h;
 
 use libc;
@@ -65,7 +65,7 @@ mod tests {
             _cookie: *const libc::c_void,
             argp: *const libc::c_char,
             arg_size: libc::size_t,
-            _dp: *const doors_h::door_desc_t,
+            _dp: *const door_h::door_desc_t,
             _n_desc: libc::c_uint,
         ) {
             // Capitalize the string provided by the client. This is a lazy way to verify that we
@@ -76,7 +76,7 @@ mod tests {
             let original = original.to_str().unwrap();
             let capitalized = original.to_ascii_uppercase();
             let capitalized = CString::new(capitalized).unwrap();
-            unsafe { doors_h::door_return(capitalized.as_ptr(), arg_size, ptr::null(), 0) };
+            unsafe { door_h::door_return(capitalized.as_ptr(), arg_size, ptr::null(), 0) };
         };
 
         // Clean up any doors which may still be lingering from a previous test.
@@ -89,7 +89,7 @@ mod tests {
         // Create a door for our "Capitalization Server"
         unsafe {
             // Create the (as yet unnamed) door descriptor.
-            let server_door_fd = doors_h::door_create(capitalize_string, ptr::null(), 0);
+            let server_door_fd = door_h::door_create(capitalize_string, ptr::null(), 0);
 
             // Create an empty file on the filesystem at `door_path`.
             fs::File::create(door_path).unwrap();
@@ -112,7 +112,7 @@ mod tests {
             let rbuf = libc::malloc(data_size) as *mut libc::c_char;
             let rsize = data_size;
 
-            let params = doors_h::door_arg_t {
+            let params = door_h::door_arg_t {
                 data_ptr,
                 data_size,
                 desc_ptr,
@@ -123,7 +123,7 @@ mod tests {
 
             // This is where the magic happens. We block here while control is transferred to a
             // separate thread which executes `capitalize_string` on our behalf.
-            doors_h::door_call(client_door_fd, &params);
+            door_h::door_call(client_door_fd, &params);
 
             // Unpack the returned bytes and compare!
             let capitalized = CStr::from_ptr(rbuf);

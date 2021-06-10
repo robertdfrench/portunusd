@@ -13,7 +13,14 @@
 //! [`DOOR_CREATE(3C)`]: https://illumos.org/man/3c/door_create
 
 
-use crate::illumos::doors_h::{door_desc_t,door_return};
+use crate::illumos::door_h::{
+    door_desc_t,
+    door_return,
+    door_create,
+    door_server_procedure_t,
+    DOOR_REFUSE_DESC
+};
+use crate::illumos::errno;
 use libc;
 use std::slice;
 use std::ptr;
@@ -78,5 +85,38 @@ macro_rules! define_server_procedure {
         impl ServerProcedure for $i {
             fn rust($a: &[u8]) -> Vec<u8> $b
         }
+    }
+}
+
+/// An actual, running Door
+///
+/// This type represents a running Door function based on your derived server procedure type. It
+/// isn't visible on the filesystem yet (we'll do that in [`ApplicationDoorway`]) but theoretically
+/// it could respond to [`DOOR_CALL(3C)`]s issued by an application which had otherwise been given
+/// access to this door (say, by passing it over a socket or a different door).
+pub struct Door {
+    descriptor: libc::c_int
+}
+
+
+/// The underlying `errno` when a door can't be created.
+#[derive(Debug)]
+pub struct DoorCreationError(libc::c_int);
+
+
+impl Door {
+    pub fn create(function: door_server_procedure_t) -> Result<Self,DoorCreationError> {
+        let result = unsafe { door_create(function, ptr::null(), DOOR_REFUSE_DESC) };
+        match result {
+            -1 => Err(DoorCreationError(errno())),
+            descriptor => Ok(Door{ descriptor })
+        }
+    }
+}
+
+
+impl Drop for Door {
+    fn drop(&mut self) {
+        unsafe{ libc::close(self.descriptor); }
     }
 }
