@@ -2,7 +2,7 @@
 name: Disclosure Tracking Issue
 about: Keep it Secret, Keep it Safe
 title: Something random like "Incorrect Cow Lithium Swingline"
-labels: ''
+labels: security
 assignees: robertdfrench
 
 ---
