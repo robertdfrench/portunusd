@@ -16,6 +16,7 @@
 //! [fattach]: ../illumos/stropts_h/fn.fattach.html
 
 
+use crate::illumos;
 use libc;
 use std::ffi;
 
@@ -26,7 +27,7 @@ use std::ffi;
 /// support where we will install the door later. From its own perspective, the jamb is just a
 /// regular, empty file (it doesn't actually know what a door is).
 pub struct Jamb {
-    path: ffi::CString,
+    pub path: ffi::CString,
     descriptor: libc::c_int
 }
 
@@ -60,7 +61,7 @@ impl Jamb {
         // Per https://www.reddit.com/r/illumos/comments/babxsl/doors_api_tutorial/eke7es9/
         let flags = libc::O_RDWR | libc::O_CREAT | libc::O_EXCL;
         match unsafe{ libc::open(path.as_ptr(), flags, 0400) } {
-            -1 => Err(JambError::Open(unsafe{ *libc::___errno() })),
+            -1 => Err(JambError::Open(illumos::errno())),
             descriptor => Ok(Self{ path, descriptor })
         }
     }
