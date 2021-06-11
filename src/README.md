@@ -7,7 +7,7 @@ Doors API needed for that purpose.
 
 This diagram shows the relationship between the major types involved in
 constructing an `ApplicationDoorway`, or a connection between the application
-and the Portunus server. Keep this diagram in mind when perusing the source
+and the `portunusd` server. Keep this diagram in mind when perusing the source
 code.
 
 ![Startup and Request Handling](../etc/diagrams/application-doorway.png)

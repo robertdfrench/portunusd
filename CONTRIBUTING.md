@@ -24,7 +24,7 @@ add your copyright notice like so:
 
 
 ### Add the Best Documentation you can Muster
-The Portunus source code is documented in American English, with an attempt to
+The PortunusD source code is documented in American English, with an attempt to
 use the 17th Edition of the Chicago Manual of Style (as best it can be stretched
 to apply to this kind of writing). If English is not your first language, or if
 writing is not your greatest passion, *I would be glad to help you*.

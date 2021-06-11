@@ -1,18 +1,18 @@
-# Portunus
+# PortunusD
 *The god of doors and ports.*
 
-`portunus` is an avant-garde application server inspired by OpenBSD's
+`portunusd` is an avant-garde application server inspired by OpenBSD's
 [`relayd`][1] and heirloom UNIX [`inetd`][2].  It listens for an incoming
 network connection, forwarding the incoming data over an [illumos door][3] to
 the intended application, and returning the response in a similar manner.
-`portunus` maps each connected port to a door on the filesystem provided by the
+`portunusd` maps each connected port to a door on the filesystem provided by the
 target application.
 
 ![Startup and Request Handling](etc/diagrams/startup-and-request-handling.png)
 
-The main goal of `portunus` is to facilitate the scaling of single-threaded
+The main goal of `portunusd` is to facilitate the scaling of single-threaded
 applications. Under the `inetd` model, a new process is created to handle every
-request. By leveraging doors, `portunus` can create a new thread in the
+request. By leveraging doors, `portunusd` can create a new thread in the
 application process only when a new highwater mark of concurrency has been
 reached; otherwise, existing threads will be re-used to handle subsequent
 requests.
@@ -65,7 +65,7 @@ minimal expense when idle, and scale linearly on a per-request granularity.
 Of course, doors alone will not handle scaling across the boundary of a single
 operating system instance, but a relayd-style collaboration with the firewall
 could facilitate this, assuming copies of the application are available on
-multiple hosts. This is where `portunus` comes in.
+multiple hosts. This is where `portunusd` comes in.
 
 ### Acknowledgements
 The social media preview image is by [Loudon dodd][4] - Own work, [CC BY-SA

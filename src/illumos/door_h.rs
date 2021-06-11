@@ -24,7 +24,7 @@ use libc;
 /// Signature for a Door Server Procedure
 ///
 /// All "Server Procedures" (functions which respond to `door_call` requests) must use this type
-/// signature. Because `portunus` neither shares descriptors with applications nor makes use of the
+/// signature. Because `portunusd` neither shares descriptors with applications nor makes use of the
 /// `cookie` field, we can consider only:
 ///
 /// * `argp`
@@ -92,7 +92,7 @@ extern "C" {
     ///
     /// [`DOOR_RETURN(3C)`]: https://illumos.org/man/3c/door_return
     /// [`EXECVE(2)`]: https://illumos.org/man/2/execve
-    /// [1]: https://github.com/robertdfrench/portunus/issues/6
+    /// [1]: https://github.com/robertdfrench/portunusd/issues/6
     pub fn door_return(
         data_ptr: *const libc::c_char,
         data_size: libc::size_t,
@@ -157,11 +157,11 @@ pub type door_attr_t = libc::c_uint;
 /// Prohibit clients from sending file / socket / door descriptors
 ///
 /// Specified in the "Description" section of [`DOOR_CREATE(3C)`]. This flag tells the illumos
-/// kernel that we do not want door clients (in this case, the `portunus` server) to be able to
+/// kernel that we do not want door clients (in this case, the `portunusd` server) to be able to
 /// forward their file, socket, or door descriptors to us. *This may change in a future version of
 /// the [APP][1].* 
 ///
-/// [1]: https://github.com/robertdfrench/portunus/blob/trunk/etc/APP.md
+/// [1]: https://github.com/robertdfrench/portunusd/blob/trunk/etc/APP.md
 /// [`DOOR_CREATE(3C)`]: https://illumos.org/man/3c/door_create#DESCRIPTION
 pub const DOOR_REFUSE_DESC: door_attr_t = 0x40; // Disable file descriptor passing.
 

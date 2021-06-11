@@ -25,7 +25,7 @@ smartos=$(1)
 else
 smartos=@$(MAKE) sync \
 	&& ssh -t "${SMARTOS_HOST}" \
-		bash -c 'true; set -e; cd portunus; set -x; $(1)'
+		bash -c 'true; set -e; cd portunusd; set -x; $(1)'
 endif
 
 
@@ -39,7 +39,7 @@ sync: #: Push latest code to development host
 ifndef SMARTOS_HOST
 	$(error You must define $$SMARTOS_HOST before proceeding)
 else
-	rsync --delete --exclude="target/*" -r . "${SMARTOS_HOST}:~/portunus"
+	rsync --delete --exclude="target/*" -r . "${SMARTOS_HOST}:~/portunusd"
 endif
 
 

@@ -58,7 +58,7 @@ pub trait ServerProcedure {
 /// the server procedure below which greets a telnet user:
 ///
 /// ```
-/// use portunus::define_server_procedure;
+/// use portunusd::define_server_procedure;
 /// use std::fmt::format;
 /// use std::str::from_utf8;
 ///
@@ -77,7 +77,7 @@ pub trait ServerProcedure {
 #[macro_export]
 macro_rules! define_server_procedure {
     ($i:ident($a:ident: &[u8]) -> Vec<u8> $b:block) => {
-        use portunus::server_procedure::ServerProcedure;
+        use portunusd::server_procedure::ServerProcedure;
         struct $i;
         impl ServerProcedure for $i {
             fn rust($a: &[u8]) -> Vec<u8> $b

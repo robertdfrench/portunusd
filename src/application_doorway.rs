@@ -34,8 +34,8 @@ pub enum DoorwayError {
 /// Respond to clients
 ///
 /// ```
-/// use portunus::define_server_procedure;
-/// use portunus::{door,jamb,illumos,application_doorway};
+/// use portunusd::define_server_procedure;
+/// use portunusd::{door,jamb,illumos,application_doorway};
 /// use std::ffi;
 /// use std::fmt::format;
 /// use std::str::from_utf8;
@@ -52,11 +52,11 @@ pub enum DoorwayError {
 ///     }
 /// });
 /// let d = door::Door::create(Greet::c).unwrap();
-/// let j = jamb::Jamb::install("portunus_b3d839.door").unwrap();
+/// let j = jamb::Jamb::install("portunusd_b3d839.door").unwrap();
 /// let doorway = application_doorway::ApplicationDoorway::create(j,d).unwrap();
 ///
 /// // Pretend to be a client and invoke the Doorway
-/// let name = ffi::CString::new("portunus").unwrap();
+/// let name = ffi::CString::new("PortunusD").unwrap();
 /// unsafe {
 ///     // Connect to the Capitalization Server through its door.
 ///     let client_door_fd = libc::open(doorway.path_ptr(), libc::O_RDONLY);
@@ -85,7 +85,7 @@ pub enum DoorwayError {
 ///     // Unpack the returned bytes and compare!
 ///     let greeting = ffi::CStr::from_ptr(rbuf);
 ///     let greeting = greeting.to_str().unwrap();
-///     assert_eq!(greeting, "Hello, portunus!");
+///     assert_eq!(greeting, "Hello, PortunusD!");
 ///
 ///     // We did a naughty and called malloc, so we need to clean up. A PR for a Rustier way
 ///     // to do this would be considered a personal favor.
@@ -135,8 +135,8 @@ impl From<ffi::NulError> for DoorHandleError {
 /// Talk to Server
 ///
 /// ```
-/// use portunus::define_server_procedure;
-/// use portunus::{door,jamb,illumos,application_doorway};
+/// use portunusd::define_server_procedure;
+/// use portunusd::{door,jamb,illumos,application_doorway};
 /// use std::ffi;
 /// use std::fmt::format;
 /// use std::str::from_utf8;
@@ -185,7 +185,7 @@ impl DoorHandle {
         let data_size = data.len();
         let desc_ptr = ptr::null();
         let desc_num = 0;
-        let rsize = 128;
+        let rsize = 4096;
         let mut response = Vec::with_capacity(rsize);
         let rbuf = response.as_ptr() as *const libc::c_char;
 

@@ -11,7 +11,7 @@ I will ask for 30-90 days (depending on the complexity of the issue) to create a
 bugfix before you disclose your findings; the tracking issue will help you keep
 me publicly accountable.
 
-Portunus has no users and therefore no money for bounties, but I will be
+PortunusD has no users and therefore no money for bounties, but I will be
 delighted to "retweet" your writeup in order to draw attention to your hard
 work.
 
