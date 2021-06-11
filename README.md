@@ -1,5 +1,7 @@
 # PortunusD
-*The god of doors and ports.*
+[Crates](https://crates.io/crate/portunusd) &VerticalSeparator;
+[Docs](https://docs.rs/portunusd)           &VerticalSeparator;
+[Tweets](https://twitter.com/portunusd)
 
 `portunusd` is an avant-garde application server inspired by OpenBSD's
 [`relayd`][1] and heirloom UNIX [`inetd`][2].  It listens for an incoming
