@@ -5,7 +5,9 @@
  *
  * Copyright 2021 Robert D. French
  */
-//! PortunusD - The Daemon of Ports and Doors
+//! [Crates](https://crates.io/crates/portunusd)           &VerticalSeparator;
+//! [Commits](https://github.com/robertdfrench/portunusd) &VerticalSeparator;
+//! [Tweets](https://twitter.com/portunusd)
 //!
 //! PortunusD is a network application server, inspired by relayd and inetd, which aims to ease the
 //! scaling of single-threaded request/response-style applications: web applications, DNS queries,

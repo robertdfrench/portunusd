@@ -1,14 +1,14 @@
 # PortunusD
-[Crates](https://crates.io/crate/portunusd) &VerticalSeparator;
-[Docs](https://docs.rs/portunusd)           &VerticalSeparator;
+[Crates](https://crates.io/crates/portunusd) &VerticalSeparator;
+[Docs](https://docs.rs/portunusd)            &VerticalSeparator;
 [Tweets](https://twitter.com/portunusd)
 
-`portunusd` is an avant-garde application server inspired by OpenBSD's
-[`relayd`][1] and heirloom UNIX [`inetd`][2].  It listens for an incoming
-network connection, forwarding the incoming data over an [illumos door][3] to
-the intended application, and returning the response in a similar manner.
-`portunusd` maps each connected port to a door on the filesystem provided by the
-target application.
+`portunusd` is a network application server inspired by OpenBSD's [`relayd`][1]
+and heirloom UNIX [`inetd`][2].  It listens for an incoming network connection,
+forwarding the incoming data over an [illumos door][3] to the intended
+application, and returning the response in a similar manner.  `portunusd` maps
+each connected port to a door on the filesystem provided by the target
+application.
 
 ![Startup and Request Handling](etc/diagrams/startup-and-request-handling.png)
 
