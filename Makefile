@@ -67,4 +67,9 @@ clean: #: Clean up so we can rebuild from scratch
 hello_web: #: Launch the hello_web example application
 	$(call smartos, cargo run --example hello_web)
 
+release: #: Create a tarball which can be installed with pkg_add
+	$(call smartos, cargo build --release)
+	$(call smartos, mkdir -p release)
+	$(call smartos, $(MAKE) -f etc/packaging/release.mk -C release)
+
 .PHONY: help provision docs test run clean hello_web sync
