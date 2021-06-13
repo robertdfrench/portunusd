@@ -1,1 +1,0 @@
-Avant-garde Network Application Server for illumos.

@@ -1,5 +1,0 @@
-PortunusD is a network application server inspired by OpenBSD's relayd and
-heirloom UNIX inetd. It listens for an incoming network connection, forwarding
-the incoming data over an illumos door to the intended application, and
-returning the response in a similar manner. PortunusD maps each connected port
-to a door on the filesystem provided by the target application.

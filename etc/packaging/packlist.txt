@@ -1,2 +1,0 @@
-sbin/portunusd
-man/man8/portunusd.8
