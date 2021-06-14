@@ -15,8 +15,9 @@
 //! throwing away all the luxuries of the operating system.
 
 
+pub mod application_doorway;
+pub mod descriptor;
 pub mod door;
 pub mod illumos;
-pub mod jamb;
+pub mod path;
 pub mod server_procedure;
-pub mod application_doorway;

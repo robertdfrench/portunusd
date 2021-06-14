@@ -3,11 +3,11 @@ name = "portunusd"
 version = "0.1.0"
 authors = ["Robert D. French <robert@robertdfrench.me>"]
 edition = "2018"
-description = "An avant-garde Network Application Server for illumos"
+description = "Avant-garde Network Application Server for illumos"
 repository = "https://github.com/robertdfrench/portunusd"
 license = "MPL-2.0"
 keywords = ["illumos", "door", "port"]
 publish = true
 
 [dependencies]
-libc = "0.2.95"
+libc = "0.2.96"

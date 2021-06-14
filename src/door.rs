@@ -14,6 +14,7 @@ use crate::illumos::door_h::{
     DOOR_REFUSE_DESC
 };
 use crate::illumos::errno;
+use crate::descriptor;
 use libc;
 use std::ptr;
 
@@ -25,7 +26,7 @@ use std::ptr;
 /// it could respond to [`DOOR_CALL(3C)`]s issued by an application which had otherwise been given
 /// access to this door (say, by passing it over a socket or a different door).
 pub struct Door {
-    pub descriptor: libc::c_int
+    descriptor: descriptor::Descriptor,
 }
 
 
@@ -48,15 +49,12 @@ impl Door {
         let result = unsafe { door_create(function, ptr::null(), DOOR_REFUSE_DESC) };
         match result {
             -1 => Err(DoorCreationError(errno())),
-            descriptor => Ok(Door{ descriptor })
+            descriptor => Ok(Door{ descriptor: descriptor.into() })
         }
     }
-}
 
-
-impl Drop for Door {
-    /// Automatically prevent clients from calling the door when it goes out of scope.
-    fn drop(&mut self) {
-        unsafe{ libc::close(self.descriptor); }
+    /// Use the door in a doors API call
+    pub fn as_c_int(&self) -> libc::c_int {
+        self.descriptor.as_c_int()
     }
 }

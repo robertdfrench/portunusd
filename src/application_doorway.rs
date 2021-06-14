@@ -9,7 +9,7 @@
 //!
 //! The ApplicationDoorway is all you need.
 
-use crate::jamb;
+use crate::path;
 use crate::door;
 use crate::illumos;
 use libc;
@@ -18,14 +18,14 @@ use std::ptr;
 
 
 pub struct ApplicationDoorway {
-    jamb: jamb::Jamb,
+    jamb: path::Reservation,
     _door: door::Door
 }
 
 
 #[derive(Debug)]
 pub enum DoorwayError {
-    Jamb(jamb::JambError),
+    Path(path::Error),
     Door(door::DoorCreationError),
     Fattach(libc::c_int)
 }
@@ -35,7 +35,7 @@ pub enum DoorwayError {
 ///
 /// ```
 /// use portunusd::define_server_procedure;
-/// use portunusd::{door,jamb,illumos,application_doorway};
+/// use portunusd::{door,path,illumos,application_doorway};
 /// use std::ffi;
 /// use std::fmt::format;
 /// use std::str::from_utf8;
@@ -52,7 +52,7 @@ pub enum DoorwayError {
 ///     }
 /// });
 /// let d = door::Door::create(Greet::c).unwrap();
-/// let j = jamb::Jamb::install("portunusd_b3d839.door").unwrap();
+/// let j = path::Reservation::make("portunusd_b3d839.door").unwrap();
 /// let doorway = application_doorway::ApplicationDoorway::create(j,d).unwrap();
 ///
 /// // Pretend to be a client and invoke the Doorway
@@ -93,8 +93,8 @@ pub enum DoorwayError {
 /// }
 /// ```
 impl ApplicationDoorway {
-    pub fn create(jamb: jamb::Jamb, door: door::Door) -> Result<Self,DoorwayError> {
-        let result = unsafe{ illumos::stropts_h::fattach(door.descriptor, jamb.path.as_ptr()) };
+    pub fn create(jamb: path::Reservation, door: door::Door) -> Result<Self,DoorwayError> {
+        let result = unsafe{ illumos::stropts_h::fattach(door.as_c_int(), jamb.path.as_ptr()) };
         match result {
             -1 => Err(DoorwayError::Fattach(illumos::errno())),
             _ => Ok(ApplicationDoorway{ jamb, _door: door })
@@ -115,13 +115,13 @@ impl Drop for ApplicationDoorway {
 
 
 pub struct DoorHandle {
-    descriptor: libc::c_int
+    path_handle: path::Handle
 }
 
 
 #[derive(Debug)]
 pub enum DoorHandleError {
-    Open(libc::c_int),
+    Handle(path::Error),
     DoorCall(libc::c_int),
     CString(ffi::NulError)
 }
@@ -132,11 +132,17 @@ impl From<ffi::NulError> for DoorHandleError {
     }
 }
 
+impl From<path::Error> for DoorHandleError {
+    fn from(error: path::Error) -> Self {
+        Self::Handle(error)
+    }
+}
+
 /// Talk to Server
 ///
 /// ```
 /// use portunusd::define_server_procedure;
-/// use portunusd::{door,jamb,illumos,application_doorway};
+/// use portunusd::{door,path,illumos,application_doorway};
 /// use std::ffi;
 /// use std::fmt::format;
 /// use std::str::from_utf8;
@@ -153,7 +159,7 @@ impl From<ffi::NulError> for DoorHandleError {
 ///     }
 /// });
 /// let d = door::Door::create(Dismiss::c).unwrap();
-/// let j = jamb::Jamb::install("portunus_516811.door").unwrap();
+/// let j = path::Reservation::make("portunus_516811.door").unwrap();
 /// let doorway = application_doorway::ApplicationDoorway::create(j,d).unwrap();
 ///
 /// let dismiss = application_doorway::DoorHandle::open("portunus_516811.door").unwrap();
@@ -171,12 +177,8 @@ impl DoorHandle {
     /// scope, its destructor will signal to the operating system to clean up the resources used
     /// for this communication.
     pub fn open(path: &str) -> Result<Self,DoorHandleError> {
-        let path = ffi::CString::new(path)?;
-        let flags = libc::O_RDONLY;
-        match unsafe{ libc::open(path.as_ptr(), flags) } {
-            -1 => Err(DoorHandleError::Open(illumos::errno())),
-            descriptor => Ok(Self{ descriptor })
-        }
+        let path_handle = path::Handle::grab(path)?;
+        Ok(Self{ path_handle })
     }
 
     /// Invoke a Server Procedure in another process.
@@ -198,19 +200,12 @@ impl DoorHandle {
             rsize
         };
 
-        match unsafe { illumos::door_h::door_call(self.descriptor, &params) } {
+        match unsafe { illumos::door_h::door_call(self.path_handle.as_c_int(), &params) } {
             -1 => Err(DoorHandleError::DoorCall(illumos::errno())),
             _ => {
                 unsafe{ response.set_len(params.data_size); }
                 Ok(response)
             }
         }
-    }
-}
-
-impl Drop for DoorHandle {
-    /// Automatically prevent clients from calling the door when it goes out of scope.
-    fn drop(&mut self) {
-        unsafe{ libc::close(self.descriptor); }
     }
 }

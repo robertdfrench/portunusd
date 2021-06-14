@@ -5,7 +5,21 @@
  *
  * Copyright 2021 Robert D. French
  */
+//! Portunus Daemon
 
-fn main() {
-    println!("PortunusD Server");
+
+use std::net::{TcpListener, TcpStream};
+
+
+fn handle_client(_stream: TcpStream) {
+
+}
+
+fn main() -> std::io::Result<()> {
+    let listener = TcpListener::bind("0.0.0.0:8080")?;
+
+    for stream in listener.incoming() {
+        handle_client(stream?);
+    }
+    Ok(())
 }
