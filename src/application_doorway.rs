@@ -17,12 +17,6 @@ use std::ffi;
 use std::ptr;
 
 
-pub struct ApplicationDoorway {
-    jamb: path::Reservation,
-    _door: door::Door
-}
-
-
 #[derive(Debug)]
 pub enum DoorwayError {
     Path(path::Error),
@@ -53,13 +47,13 @@ pub enum DoorwayError {
 /// });
 /// let d = door::Door::create(Greet::c).unwrap();
 /// let j = path::Reservation::make("portunusd_b3d839.door").unwrap();
-/// let doorway = application_doorway::ApplicationDoorway::create(j,d).unwrap();
+/// let a = path::Attachment::new(d.descriptor,j).unwrap();
 ///
 /// // Pretend to be a client and invoke the Doorway
 /// let name = ffi::CString::new("PortunusD").unwrap();
 /// unsafe {
 ///     // Connect to the Capitalization Server through its door.
-///     let client_door_fd = libc::open(doorway.path_ptr(), libc::O_RDONLY);
+///     let client_door_fd = libc::open(a.path_ptr(), libc::O_RDONLY);
 ///
 ///     // Pass `original` through the Capitalization Server's door.
 ///     let data_ptr = name.as_ptr();
@@ -92,26 +86,6 @@ pub enum DoorwayError {
 ///     libc::free(rbuf as *mut libc::c_void);
 /// }
 /// ```
-impl ApplicationDoorway {
-    pub fn create(jamb: path::Reservation, door: door::Door) -> Result<Self,DoorwayError> {
-        let result = unsafe{ illumos::stropts_h::fattach(door.as_c_int(), jamb.path.as_ptr()) };
-        match result {
-            -1 => Err(DoorwayError::Fattach(illumos::errno())),
-            _ => Ok(ApplicationDoorway{ jamb, _door: door })
-        }
-    }
-
-    pub fn path_ptr(&self) -> *const libc::c_char {
-        self.jamb.path.as_ptr()
-    }
-}
-
-
-impl Drop for ApplicationDoorway {
-    fn drop(&mut self) {
-        unsafe { illumos::stropts_h::fdetach(self.jamb.path.as_ptr()); }
-    }
-}
 
 
 pub struct DoorHandle {
@@ -160,7 +134,7 @@ impl From<path::Error> for DoorHandleError {
 /// });
 /// let d = door::Door::create(Dismiss::c).unwrap();
 /// let j = path::Reservation::make("portunus_516811.door").unwrap();
-/// let doorway = application_doorway::ApplicationDoorway::create(j,d).unwrap();
+/// let a = path::Attachment::new(d.descriptor,j).unwrap();
 ///
 /// let dismiss = application_doorway::DoorHandle::open("portunus_516811.door").unwrap();
 /// let name = ffi::CString::new("Sunutrop").unwrap();

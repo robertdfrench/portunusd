@@ -26,7 +26,7 @@ use std::ptr;
 /// it could respond to [`DOOR_CALL(3C)`]s issued by an application which had otherwise been given
 /// access to this door (say, by passing it over a socket or a different door).
 pub struct Door {
-    descriptor: descriptor::Descriptor,
+    pub descriptor: descriptor::Descriptor,
 }
 
 

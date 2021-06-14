@@ -57,6 +57,33 @@ impl Drop for Reservation {
 }
 
 
+/// A non-file descriptor attached to a file-looking path.
+pub struct Attachment {
+    reservation: Reservation,
+    _descriptor: Descriptor
+}
+
+impl Attachment {
+    pub fn new(descriptor: Descriptor, reservation: Reservation) -> Result<Self,Error> {
+        let raw_fd = descriptor.as_c_int();
+        let path_ptr = reservation.path.as_ptr();
+        match unsafe{ illumos::stropts_h::fattach(raw_fd, path_ptr) } {
+            -1 => Err(Error::FailedToAttach(illumos::errno())),
+            _ => Ok(Self{ reservation, _descriptor: descriptor })
+        }
+    }
+
+    pub fn path_ptr(&self) -> *const libc::c_char {
+        self.reservation.path.as_ptr()
+    }
+}
+    
+impl Drop for Attachment {
+    fn drop(&mut self) {
+        unsafe{ illumos::stropts_h::fdetach(self.path_ptr()); }
+    }
+}
+
 /// A path which is guaranteed to be open.
 ///
 /// This is only for use by types defined in this module.
@@ -90,7 +117,8 @@ impl OpenPath {
 #[derive(Debug)]
 pub enum Error {
     FailedToOpen(libc::c_int),
-    InvalidCString(ffi::NulError)
+    InvalidCString(ffi::NulError),
+    FailedToAttach(libc::c_int)
 }
 
 
