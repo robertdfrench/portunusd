@@ -5,56 +5,279 @@
  *
  * Copyright 2021 Robert D. French
  */
-//! A live Server Procedure
-
+//! Define connection handlers for your PortunusD Apps!
+//!
+//! In PortunusD, every incoming connection is forwarded to an external application via
+//! [illumos Doors][1]. You can use the `derive_server_procedure!` macro defined in this module to
+//! convert a `Fn: &[u8] -> Vec<u8>` function into a PortunusD function handler.
+//!
+//! Below is an example of an application that accepts a user's name in the request body and
+//! returns a polite greeting:
+//! ```
+//! use portunusd::derive_server_procedure;
+//! use portunusd::door;
+//! use std::fmt::format;
+//! use std::str::from_utf8;
+//!
+//! // Consider the function `hello`, which returns a polite greeting to a client:
+//! fn hello(request: &[u8]) -> Vec<u8> {
+//!     match from_utf8(request) {
+//!         Err(_) => b"I couldn't understand your name!".to_vec(),
+//!         Ok(name) => {
+//!             let response = format!("Hello, {}!", name);
+//!             response.into_bytes()
+//!         }
+//!     }
+//! }
+//!
+//! // We can turn that function into a special type (one that implements ServerProcedure) which
+//! // knows how to make the function available via a "door" on the filesystem:
+//! derive_server_procedure!(hello as Hello);
+//!
+//! // make the `hello` function available on the filesystem
+//! let hello_server = Hello::install("portunusd_test.04683b").unwrap();
+//!
+//! // Now a client (even one in another process!) can call this procedure:
+//! let hello_client = door::Client::new("portunusd_test.04683b").unwrap();
+//! let greeting = hello_client.call(b"Portunus").unwrap();
+//!
+//! assert_eq!(greeting, b"Hello, Portunus!");
+//! ```
+//!
+//! [1]: https://github.com/robertdfrench/revolving-door
 
 use crate::illumos::door_h::{
+    door_call,
     door_create,
-    door_server_procedure_t,
-    DOOR_REFUSE_DESC
+    door_arg_t,
+    DOOR_REFUSE_DESC,
+    door_desc_t,
+    door_return,
 };
+use crate::illumos::stropts_h::{ fattach, fdetach };
 use crate::illumos::errno;
-use crate::descriptor;
 use libc;
+use std::ffi;
 use std::ptr;
+use std::slice;
 
 
-/// An actual, running Door
+/// A Client handle for a door. Used by PortunusD to call your application.
 ///
-/// This type represents a running Door function based on your derived server procedure type. It
-/// isn't visible on the filesystem yet (we'll do that in [`ApplicationDoorway`]) but theoretically
-/// it could respond to [`DOOR_CALL(3C)`]s issued by an application which had otherwise been given
-/// access to this door (say, by passing it over a socket or a different door).
-pub struct Door {
-    pub descriptor: descriptor::Descriptor,
+/// When your application wants to receive requests from PortunusD, it must create a [Door] on the
+/// filesystem which points to a [`ServerProcedure`] function. This Client type is the reciprocal
+/// of a ServerProcedure -- it is PortunusD's way of accessing your application, much like a file
+/// handle is a means of accessing the bytes which make up a file.
+///
+/// [Door]: https://github.com/robertdfrench/revolving-door#revolving-doors
+/// [`ServerProcedure`]: trait.ServerProcedure.html
+pub struct Client {
+    door_descriptor: libc::c_int
 }
 
-
-/// The underlying `errno` when a door can't be created.
-#[derive(Debug)]
-pub struct DoorCreationError(libc::c_int);
-
-
-impl Door {
-    /// Create a callable door descriptor from a server procedure
+impl Client {
+    /// Try to create a new client, given a filesystem to a door.
     ///
-    /// Given a server procedure `function`, call [`DOOR_CREATE(3C)`] to get a descriptor which can
-    /// be used to give other processes the ability to invoke `function`. For Portunus
-    /// Applications, this descriptor will later be advertised on the filesystem by calling
-    /// [`FATTACH(3C)`].
-    ///
-    /// [`FATTACH(3C)`]: https://illumos.org/man/3c/fattach
-    /// [`DOOR_CREATE(3C)`]: https://illumos.org/man/3c/door_create
-    pub fn create(function: door_server_procedure_t) -> Result<Self,DoorCreationError> {
-        let result = unsafe { door_create(function, ptr::null(), DOOR_REFUSE_DESC) };
-        match result {
-            -1 => Err(DoorCreationError(errno())),
-            descriptor => Ok(Door{ descriptor: descriptor.into() })
+    /// This may fail if the door does not exist, if the path is not a door, or if some other
+    /// terrible thing has happened.
+    pub fn new(path: &str) -> Result<Self,Error> {
+        let path = ffi::CString::new(path)?;
+        match unsafe{ libc::open(path.as_ptr(), libc::O_RDONLY) } {
+            -1 => return Err(Error::OpenDoor(errno())),
+            door_descriptor => Ok(Self{ door_descriptor })
         }
     }
 
-    /// Use the door in a doors API call
-    pub fn as_c_int(&self) -> libc::c_int {
-        self.descriptor.as_c_int()
+    /// Invoke the Server Procedure defined in a PortunusdD application
+    ///
+    /// Forwad a slice of bytes through a door to a PortunusD application. If successful, the
+    /// resulting `Vec<u8>` will contain the bytes returned from the application's server
+    /// procedure.
+    pub fn call(&self, request: &[u8]) -> Result<Vec<u8>,Error> {
+        let mut response = Vec::with_capacity(1024);
+        // the vector has length zero, so rsize is zero, so the overflow handling gets triggered
+        // which fucks up alignment so data_ptr > rbuf
+
+        let mut arg = door_arg_t {
+            data_ptr: request.as_ptr() as *const i8,
+            data_size: request.len(),
+            desc_ptr: ptr::null(),
+            desc_num: 0,
+            rbuf: response.as_mut_ptr() as *const i8,
+            rsize: response.len()
+        };
+
+        if unsafe{ door_call(self.door_descriptor, &mut arg) } == -1 {
+            return Err(Error::DoorCall(errno()));
+        }
+
+        unsafe{ response.set_len(arg.data_size); }
+
+        let slice = unsafe{ std::slice::from_raw_parts(arg.data_ptr as *const u8, arg.data_size) };
+        Ok(slice.to_vec())
+    }
+}
+
+impl Drop for Client {
+    /// Close PortunusD's connection the remote application
+    fn drop(&mut self) {
+        unsafe{ libc::close(self.door_descriptor); }
+    }
+}
+
+/// A server procedure which has been attached to the filesystem.
+pub struct Server {
+    jamb_path: ffi::CString,
+    door_descriptor: libc::c_int
+}
+
+/// Door problems.
+///
+/// Two things can go wrong with a door -- its path can be invalid, or a system call can fail. If a
+/// system call fails, one of this enum's variants will be returned corresponding to the failed
+/// system call. It will contain the value of `errno` associated with the failed system call.
+#[derive(Debug)]
+pub enum Error {
+    InvalidPath(ffi::NulError),
+    InstallJamb(libc::c_int),
+    AttachDoor(libc::c_int),
+    OpenDoor(libc::c_int),
+    DoorCall(libc::c_int),
+    CreateDoor(libc::c_int),
+}
+
+impl From<ffi::NulError> for Error {
+    fn from(other: ffi::NulError) -> Self {
+        Self::InvalidPath(other)
+    }
+}
+
+impl Drop for Server {
+    /// Prevent new client requests
+    ///
+    /// Removes the door from the filesystem, and closes the door, invaliding any active door
+    /// descriptors that client processes may have. This will prevent PortunusD from forwarding
+    /// additional requests to your application.
+    fn drop(&mut self) {
+        // Stop new clients from getting a door descriptor
+        unsafe{ fdetach(self.jamb_path.as_ptr()); }
+        // Remove jamb from filesystem
+        unsafe{ libc::unlink(self.jamb_path.as_ptr()); }
+        // Stop existing clients from issuing new door_call()s
+        unsafe{ libc::close(self.door_descriptor); }
+    }
+}
+
+/// Trait for types derived from the `define_server_procedure!` macro.
+///
+/// Because `define_server_procedure!` creates a new type to "host" each server procedure, we need
+/// to define a trait so we can work with these types generically.
+///
+pub trait ServerProcedure {
+
+    /// This is the part you define.  The function body you give in `define_server_procedure!` will
+    /// end up as the definition of this `rust` function, which will be called by the associated
+    /// `c_wrapper` function in this trait.
+    fn rust_wrapper(request: &[u8]) -> Vec<u8>;
+
+    /// This is a wrapper that fits the Doors API All it does is pack and unpack data so that our
+    /// server procedure doesn't have to deal with the doors api directly. Its unusual signature
+    /// comes directly from [`DOOR_CREATE(3C)`].
+    ///
+    /// [`DOOR_CREATE(3C)`]: https://illumos.org/man/3C/door_create
+    extern "C" fn c_wrapper(
+        _cookie: *const libc::c_void,
+        argp: *const libc::c_char,
+        arg_size: libc::size_t,
+        _dp: *const door_desc_t,
+        _n_desc: libc::c_uint
+    ) {
+        let request = unsafe{ slice::from_raw_parts(argp as *const u8, arg_size) };
+        let response = Self::rust_wrapper(request);
+        let data_ptr = response.as_ptr();
+        let data_size = response.len();
+        unsafe{ door_return(data_ptr as *const libc::c_char, data_size, ptr::null(), 0); }
+    }
+
+    /// Make this procedure available on the filesystem (as a door).
+    fn install(path: &str) -> Result<Server,Error> {
+        let jamb_path = ffi::CString::new(path)?;
+
+        // Create door
+        let door_descriptor = unsafe{ door_create(Self::c_wrapper, ptr::null(), DOOR_REFUSE_DESC) };
+        if door_descriptor == -1 {
+            return Err(Error::CreateDoor(errno()));
+        }
+
+        // Create jamb
+        let create_new = libc::O_RDWR | libc::O_CREAT | libc::O_EXCL;
+        match unsafe{ libc::open(jamb_path.as_ptr(), create_new, 0400) } {
+            -1 => {
+                // Clean up the door, since we aren't going to finish
+                unsafe{ libc::close(door_descriptor) }; 
+                return Err(Error::InstallJamb(errno()))
+            },
+            jamb_descriptor => unsafe{ libc::close(jamb_descriptor); }
+        }
+
+        // Attach door to jamb
+        match unsafe{ fattach(door_descriptor, jamb_path.as_ptr()) } {
+            -1 => {
+                // Clean up the door and jamb, since we aren't going to finish
+                unsafe{ libc::close(door_descriptor) }; 
+                unsafe{ libc::unlink(jamb_path.as_ptr()); }
+                Err(Error::AttachDoor(errno()))
+            },
+            _ => Ok(Server{ jamb_path, door_descriptor })
+        }
+    }
+}
+
+
+/// Define a function which can respond to [`DOOR_CALL(3C)`].
+///
+/// This macro turns a function into a type which implements the [`ServerProcedure`] trait.
+/// The function should accept a `&[u8]` and return a `Vec<u8>`, because the `ServerProcedure`
+/// trait will expect that signature.
+///
+/// # Example
+/// ```
+/// use portunusd::derive_server_procedure;
+/// use std::fmt::format;
+/// use std::str::from_utf8;
+///
+/// // Consider this function, which returns a polite greeting to a client:
+/// fn hello(request: &[u8]) -> Vec<u8> {
+///     match from_utf8(request) {
+///         Err(_) => b"Your name is not valid utf8".to_vec(),
+///         Ok(name) => {
+///             let response = format!("Hello, {}!", name);
+///             response.into_bytes()
+///         }
+///     }
+/// }
+///
+/// // We can use the `derive_server_procedure!` macro to create a
+/// // `ServerProcedure` type called `Hello`:
+/// derive_server_procedure!(hello as Hello);
+///
+/// // We can now create a filesystem object known as a "door" which
+/// // will give PortunusD the ability to invoke the `hello` function
+/// // (as long as "hello.door" is readable by the `portunus` user):
+/// Hello::install("hello.door").unwrap();
+/// ```
+///
+/// [`DOOR_CALL(3C)`]: https://illumos.org/man/3C/door_call
+/// [`ServerProcedure`]: door/trait.ServerProcedure.html
+#[macro_export]
+macro_rules! derive_server_procedure {
+    ($function_name:ident as $type_name:ident) => {
+        use portunusd::door::ServerProcedure;
+        struct $type_name;
+        impl ServerProcedure for $type_name {
+            fn rust_wrapper(request: &[u8]) -> Vec<u8> {
+                $function_name(request)
+            }
+        }
     }
 }

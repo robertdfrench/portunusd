@@ -105,9 +105,11 @@ extern "C" {
 /// Arguments for, and Return Values from, a Door invocation.
 ///
 /// This is your daily driver, right here. `data_ptr` and `data_size` represent the bytes you want
-/// to send to the server. `rbuf` and `rsize` represent a space you've set aside to store bytes that
-/// come back from the server. `desc_ptr` and `desc_num` are for passing any file / socket / door
-/// descriptors you'd like the server to be able to access. It is described in more detail below.
+/// to send to the server. `rbuf` and `rsize` represent a space you've set aside to store bytes
+/// that come back from the server; after [`DOOR_CALL(3C)`] completes, `data_ptr` and `data_size`
+/// will bue updated to point inside this space. `desc_ptr` and `desc_num` are for passing any file
+/// / socket / door descriptors you'd like the server to be able to access. It is described in more
+/// detail below.
 ///
 /// See [`DOOR_CALL(3C)`] for more details.
 ///
@@ -116,6 +118,8 @@ extern "C" {
 pub struct door_arg_t {
     pub data_ptr: *const libc::c_char,
     /// Request data from the network to the Door Application
+    ///
+    /// Becomes the response data after door_call completes.
     pub data_size: libc::size_t,
 
     pub desc_ptr: *const door_desc_t,
