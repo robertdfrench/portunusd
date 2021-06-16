@@ -62,6 +62,36 @@ use std::ptr;
 use std::slice;
 
 
+pub struct ClientRef {
+    door_descriptor: libc::c_int
+}
+
+impl ClientRef {
+    pub fn call(&self, request: &[u8]) -> Result<Vec<u8>,Error> {
+        let mut response = Vec::with_capacity(1024);
+        // the vector has length zero, so rsize is zero, so the overflow handling gets triggered
+        // which fucks up alignment so data_ptr > rbuf
+
+        let mut arg = door_arg_t {
+            data_ptr: request.as_ptr() as *const i8,
+            data_size: request.len(),
+            desc_ptr: ptr::null(),
+            desc_num: 0,
+            rbuf: response.as_mut_ptr() as *const i8,
+            rsize: response.len()
+        };
+
+        if unsafe{ door_call(self.door_descriptor, &mut arg) } == -1 {
+            return Err(Error::DoorCall(errno()));
+        }
+
+        unsafe{ response.set_len(arg.data_size); }
+
+        let slice = unsafe{ std::slice::from_raw_parts(arg.data_ptr as *const u8, arg.data_size) };
+        Ok(slice.to_vec())
+    }
+}
+
 /// A Client handle for a door. Used by PortunusD to call your application.
 ///
 /// When your application wants to receive requests from PortunusD, it must create a [Door] on the
@@ -94,27 +124,12 @@ impl Client {
     /// resulting `Vec<u8>` will contain the bytes returned from the application's server
     /// procedure.
     pub fn call(&self, request: &[u8]) -> Result<Vec<u8>,Error> {
-        let mut response = Vec::with_capacity(1024);
-        // the vector has length zero, so rsize is zero, so the overflow handling gets triggered
-        // which fucks up alignment so data_ptr > rbuf
+        let cr = self.borrow();
+        cr.call(request)
+    }
 
-        let mut arg = door_arg_t {
-            data_ptr: request.as_ptr() as *const i8,
-            data_size: request.len(),
-            desc_ptr: ptr::null(),
-            desc_num: 0,
-            rbuf: response.as_mut_ptr() as *const i8,
-            rsize: response.len()
-        };
-
-        if unsafe{ door_call(self.door_descriptor, &mut arg) } == -1 {
-            return Err(Error::DoorCall(errno()));
-        }
-
-        unsafe{ response.set_len(arg.data_size); }
-
-        let slice = unsafe{ std::slice::from_raw_parts(arg.data_ptr as *const u8, arg.data_size) };
-        Ok(slice.to_vec())
+    pub fn borrow(&self) -> ClientRef {
+        ClientRef{ door_descriptor: self.door_descriptor }
     }
 }
 

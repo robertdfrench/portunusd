@@ -1,10 +1,13 @@
 == Portunus Feature Roadmap
 
-. Distributed DNS Server
-.. Forwarding Port traffic to Door Applications
-... Reading door and port settings from a config file
-.. Loading balancing with `portunusd` instances on other hosts
-. Distributed Web Server
-.. Serving static files from disk
-.. Routing HTTP to different Door Apps based on URI Path
-. Terminating TLS on behalf of Door Applications (https://github.com/ctz/rustls)
+. Forward TCP traffic to Door Applications
+.. Example HTTP echo server
+. Read door and port settings from a config file
+.. Example DNS server
+.. Show both examples running simultaneously
+. Make portunus optionally HTTP-aware
+.. Route HTTP to different Door Apps based on URI Path
+.. Serve static files from disk
+. Terminate TLS on behalf of Door Applications (https://github.com/ctz/rustls)
+. Forward excess requests to `portunusd` instances on other hosts
+.. Show an example web app running on multiple hosts

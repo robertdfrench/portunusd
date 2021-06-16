@@ -8,14 +8,31 @@
 //! Portunus Daemon
 
 use portunusd::door;
+use rayon;
+use std::net::{TcpListener,TcpStream};
+use std::io::{Read,Write};
+
+fn main() {
+    let hello_web = door::Client::new("/var/run/hello_web.portunusd").unwrap();
+    let listener = TcpListener::bind("0.0.0.0:80").unwrap();
+
+    for stream in listener.incoming() {
+        let stream = stream.unwrap();
+        let client = hello_web.borrow();
+
+        rayon::spawn(|| {
+            handle_connection(stream, client);
+        });
+    }
+}
 
 
-fn main() -> Result<(),door::Error> {
-    let hello_web = door::Client::new("/var/run/hello_web.portunusd")?;
-    let greeting = hello_web.call(b"GET /greeting/PortunusD HTTP/1.1\nJunk: Header")?;
-    match String::from_utf8(greeting) {
-        Ok(greeting) => println!("{}", greeting),
-        Err(_) => panic!("server returned invalid utf-8")
-    };
-    Ok(())
+fn handle_connection(mut stream: TcpStream, client: door::ClientRef) {
+    let mut request = [0; 1024];
+    stream.read(&mut request).unwrap();
+
+    let response = client.call(&request).unwrap();
+
+    stream.write(&response).unwrap();
+    stream.flush().unwrap();
 }

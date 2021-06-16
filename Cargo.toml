@@ -1,6 +1,6 @@
 [package]
 name = "portunusd"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Robert D. French <robert@robertdfrench.me>"]
 edition = "2018"
 description = "Avant-garde Network Application Server for illumos"
@@ -11,3 +11,4 @@ publish = true
 
 [dependencies]
 libc = "0.2.96"
+rayon = "1.5.1"

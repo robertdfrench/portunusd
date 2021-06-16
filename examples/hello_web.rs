@@ -6,8 +6,6 @@
  * Copyright 2021 Robert D. French
  */
 use portunusd::derive_server_procedure;
-use portunusd::door;
-use std::fmt::format;
 use std::str::from_utf8;
 
 fn content_type() -> String {
@@ -43,8 +41,8 @@ fn handle_http_request(request: &str) -> String {
             if elements.len() != 3 {
                 return four_hundred("Your http request line is sorta goofy");
             }
-            if elements[0] != "GET" || elements[2] != "HTTP/1.1" {
-                return four_hundred("I only accept HTTP/1.1 GET requests");
+            if elements[0] != "GET" {
+                return four_hundred("I only accept GET requests");
             }
             let path = elements[1];
             let components: Vec<&str> = path.split('/').collect();
