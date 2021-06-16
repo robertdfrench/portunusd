@@ -9,9 +9,10 @@
 
 use portunusd::door;
 
+
 fn main() -> Result<(),door::Error> {
     let hello_web = door::Client::new("/var/run/hello_web.portunusd")?;
-    let greeting = hello_web.call(b"PortunusD")?;
+    let greeting = hello_web.call(b"GET /greeting/PortunusD HTTP/1.1\nJunk: Header")?;
     match String::from_utf8(greeting) {
         Ok(greeting) => println!("{}", greeting),
         Err(_) => panic!("server returned invalid utf-8")
