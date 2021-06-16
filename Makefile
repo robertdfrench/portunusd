@@ -67,4 +67,7 @@ clean: #: Clean up so we can rebuild from scratch
 hello_web: #: Launch the hello_web example application
 	$(call smartos, cargo run --example hello_web)
 
+run: #: Run the portunusd server
+	$(call smartos, cargo run)
+
 .PHONY: help provision docs test run clean hello_web sync

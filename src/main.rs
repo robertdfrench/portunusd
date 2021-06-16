@@ -7,19 +7,14 @@
  */
 //! Portunus Daemon
 
+use portunusd::door;
 
-use std::net::{TcpListener, TcpStream};
-
-
-fn handle_client(_stream: TcpStream) {
-
-}
-
-fn main() -> std::io::Result<()> {
-    let listener = TcpListener::bind("0.0.0.0:8080")?;
-
-    for stream in listener.incoming() {
-        handle_client(stream?);
-    }
+fn main() -> Result<(),door::Error> {
+    let hello_web = door::Client::new("/var/run/hello_web.portunusd")?;
+    let greeting = hello_web.call(b"PortunusD")?;
+    match String::from_utf8(greeting) {
+        Ok(greeting) => println!("{}", greeting),
+        Err(_) => panic!("server returned invalid utf-8")
+    };
     Ok(())
 }

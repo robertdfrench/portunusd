@@ -125,11 +125,13 @@ impl Drop for Client {
     }
 }
 
+
 /// A server procedure which has been attached to the filesystem.
 pub struct Server {
     jamb_path: ffi::CString,
     door_descriptor: libc::c_int
 }
+
 
 /// Door problems.
 ///
