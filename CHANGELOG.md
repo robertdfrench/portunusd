@@ -15,5 +15,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Second example app "Go Away" to send a user away [examples/go_away.rs](examples/go_away.rs).
 
 
-[Unreleased]: https://github.com/robertdfrench/portunusd/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/robertdfrench/portunusd/compare/0.3.0...HEAD
 [0.3.0]: https://github.com/robertdfrench/portunusd/compare/0.2.0...0.3.0
