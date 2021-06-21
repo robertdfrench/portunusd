@@ -79,6 +79,6 @@ Many obscure illumos / Rust / Doors questions were answered by [@jasonbking][6].
 [1]: https://github.com/openbsd/src/tree/master/usr.sbin/httpd
 [2]: https://developer.ibm.com/technologies/linux/articles/au-spunix-inetd/
 [3]: https://github.com/robertdfrench/revolving-door
-[4]: https://commons.wikimedia.org/w/index.php?title=User:Loudon_dodd
+[4]: https://commons.wikimedia.org/wiki/User:Loudon_dodd~commonswiki
 [5]: https://creativecommons.org/licenses/by-sa/3.0
 [6]: https://github.com/jasonbking
