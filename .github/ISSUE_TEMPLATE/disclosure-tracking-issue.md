@@ -7,6 +7,9 @@ assignees: robertdfrench
 
 ---
 
-Do not add any content here!
+* Do not add any content here!
+* Use https://perchance.org/portunusd-security-disclosure to help generate a
+  title.
 
-Please leave this blank and email any concerns, questions, or findings to portunusd@protonmail.com.
+Please leave this blank and email any security concerns, questions, or findings
+to portunusd@protonmail.com, using the title of this issue as the email subject.

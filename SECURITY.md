@@ -3,7 +3,7 @@
 Please disclose security problems by:
 
 1. Opening a [Disclosure Tracking Issue][1] in GitHub with a random, nondescript
-   title.
+   title. Use [this title generator][2] if you need help.
 1. Sending the content of the disclosure via email to
    portunusd@protonmail.com, using the above issue title as the subject.
 
@@ -16,3 +16,4 @@ delighted to "retweet" your writeup in order to draw attention to your hard
 work.
 
 [1]: https://github.com/robertdfrench/portunus/issues/new/choose
+[2]: https://perchance.org/portunusd-security-disclosure
