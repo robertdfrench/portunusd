@@ -1,10 +1,12 @@
 == Portunus Feature Roadmap
 
-. Forward TCP traffic to Door Applications
-.. Example HTTP echo server
-. Read door and port settings from a config file
-.. Example DNS server
-.. Show both examples running simultaneously
+. Forward TCP traffic to Door Applications ->
+https://github.com/robertdfrench/portunusd/tree/0.2.0[0.2.0]
+.. Example HTTP echo server ->
+https://github.com/robertdfrench/portunusd/tree/0.2.0[0.2.0]
+. https://github.com/robertdfrench/portunusd/milestone/1[Read door and port
+settings from a config file]
+. Example DNS server
 . Make portunus optionally HTTP-aware
 .. Route HTTP to different Door Apps based on URI Path
 .. Serve static files from disk

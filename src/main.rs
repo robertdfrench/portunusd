@@ -9,16 +9,56 @@
 
 use portunusd::door;
 use rayon;
-use std::net::{TcpListener,TcpStream};
 use std::io::{Read,Write};
+use std::net::{TcpListener,TcpStream};
+use std::thread;
+use std::time::Duration;
+
+struct RelayPlan {
+    network: String,
+    application: String,
+}
+
+struct RelayPath {
+    pub port: TcpListener,
+    pub door: door::Client,
+}
+
 
 fn main() {
-    let hello_web = door::Client::new("/var/run/hello_web.portunusd").unwrap();
-    let listener = TcpListener::bind("0.0.0.0:80").unwrap();
+    let plans = vec![
+        RelayPlan{
+            application: "/var/run/hello_web.portunusd".to_owned(),
+            network: "0.0.0.0:80".to_owned()
+        },
+        RelayPlan{
+            application: "/var/run/go_away.portunusd".to_owned(),
+            network: "0.0.0.0:8080".to_owned()
+        },
+    ];
 
-    for stream in listener.incoming() {
+    let mut paths = vec![];
+    for plan in &plans {
+        paths.push(RelayPath{
+            door: door::Client::new(&plan.application).unwrap(),
+            port: TcpListener::bind(&plan.network).unwrap(),
+        });
+    }
+
+
+    while let Some(path) = paths.pop() {
+        rayon::spawn(|| {
+            monitor(path);
+        });
+    }
+
+    thread::sleep(Duration::new(u64::MAX, 1_000_000_000 - 1));
+}
+
+fn monitor(path: RelayPath) {
+    for stream in path.port.incoming() {
         let stream = stream.unwrap();
-        let client = hello_web.borrow();
+        let client = path.door.borrow();
 
         rayon::spawn(|| {
             handle_connection(stream, client);
