@@ -70,4 +70,21 @@ hello_web: #: Launch the hello_web example application
 run: #: Run the portunusd server
 	$(call smartos, cargo run)
 
-.PHONY: help provision docs test run clean hello_web sync
+install: #: Install PortunusD on a SmartOS host
+	$(call smartos, make /opt/local/sbin/portunusd \
+			     /opt/local/man/man8/portunusd.8.gz)
+
+/opt/local/sbin/portunusd: target/release/portunusd
+	install $< $@
+
+target/release/portunusd:
+	cargo build --release
+
+/opt/local/man/man8/portunusd.8.gz: target/release/man/portunusd.8.gz
+	install $< $@
+
+target/release/man/portunusd.8.gz: etc/manual/portunusd.8
+	mkdir -p $(dir $@)
+	cat $< | gzip > $@
+
+.PHONY: help provision docs test run clean hello_web sync install
