@@ -12,34 +12,54 @@ use portunusd::door;
 use portunusd::plan;
 use rayon;
 use std::io::{Read,Write};
-use std::net::{TcpListener,TcpStream};
+use std::net::{SocketAddr,TcpListener,TcpStream,UdpSocket};
+use std::os::unix::io::{AsRawFd, RawFd};
 
+enum RelaySocket {
+    Tcp(TcpListener),
+    Udp(UdpSocket),
+}
+
+impl AsRawFd for RelaySocket {
+    fn as_raw_fd(&self) -> RawFd {
+        match self {
+            Self::Tcp(socket) => socket.as_raw_fd(),
+            Self::Udp(socket) => socket.as_raw_fd(),
+        }
+    }
+}
 
 struct Relay {
-    pub port: TcpListener,
+    pub socket: RelaySocket,
     pub door: door::Client,
 }
 
 fn main() {
-    let relay_statements = vec![
-        "forward 0.0.0.0:80 to /var/run/hello_web.portunusd",
-        "forward 0.0.0.0:8080 to /var/run/go_away.portunusd",
-    ];
-
+    println!("PortunusD {} is booting up!", env!("CARGO_PKG_VERSION"));
+    let plans = plan::parse_config("/opt/local/etc/portunusd.conf").unwrap();
 
     let mut relays = vec![];
-    for statement in &relay_statements {
-        let plan: plan::RelayPlan = statement.parse().unwrap();
-        relays.push(Relay{
-            door: door::Client::new(&plan.application_path.to_str().unwrap()).unwrap(),
-            port: TcpListener::bind(&plan.network_address).unwrap(),
-        });
+    for plan in &plans {
+        let door = door::Client::new(&plan.application_path.to_str().unwrap()).unwrap();
+        let socket = match plan.protocol {
+            plan::RelayProtocol::Tcp => {
+                let socket = TcpListener::bind(&plan.network_address).unwrap();
+                socket.set_nonblocking(true).unwrap();
+                RelaySocket::Tcp(socket)
+            },
+            plan::RelayProtocol::Udp => {
+                let socket = UdpSocket::bind(&plan.network_address).unwrap();
+                socket.set_nonblocking(true).unwrap();
+                RelaySocket::Udp(socket)
+            },
+        };
+
+        relays.push(Relay{ door, socket });
     }
 
     let poller = Poller::new().unwrap();
     for (key,relay) in relays.iter().enumerate() {
-        relay.port.set_nonblocking(true).unwrap();
-        poller.add(&relay.port, Event::readable(key)).unwrap();
+        poller.add(&relay.socket, Event::readable(key)).unwrap();
     }
 
     let mut events = Vec::new();
@@ -50,19 +70,53 @@ fn main() {
         for event in &events {
             // A new client has arrived
             let relay = &relays[event.key]; // We know this exists b/c enumerate
-            let (stream, _) = relay.port.accept().unwrap();
+            match &relay.socket {
+                RelaySocket::Tcp(socket) => {
+                    // Okay to unwrap because we know the socket is ready
+                    let (stream, _) = socket.accept().unwrap();
 
-            let client = relay.door.borrow();
-            rayon::spawn(|| {
-                handle_connection(stream, client);
-            });
+                    let client = relay.door.borrow();
+                    rayon::spawn(|| {
+                        handle_tcp_stream(stream, client);
+                    });
+                },
+                RelaySocket::Udp(socket) => {
+                    let mut request_buf = [0; 1024];
 
-            poller.modify(&relay.port, Event::readable(event.key)).unwrap();
+                    // Okay to unwrap because we know the socket is ready;
+                    let (n, addr) = socket.recv_from(&mut request_buf).unwrap();
+                    let client = relay.door.borrow();
+                    let csocket = socket.try_clone().unwrap();
+
+                    rayon::spawn(move || {
+                        let request = &request_buf[..n];
+                        handle_udp_socket(request, csocket, addr, client);
+                    });
+                },
+            }
+
+            poller.modify(&relay.socket, Event::readable(event.key)).unwrap();
         }
     }
 }
 
-fn handle_connection(mut stream: TcpStream, client: door::ClientRef) {
+fn handle_udp_socket(request: &[u8], socket: UdpSocket, addr: SocketAddr, client: door::ClientRef) {
+    let response = client.call(&request).unwrap();
+
+    // Pfff... who needs ownership?
+    let mut offset = 0;
+    while offset < response.len() {
+        match socket.send_to(&response[offset..], addr) {
+            Ok(n) => offset += n,
+            Err(e) => {
+                eprintln!("error after writing {} bytes to {}: {}", offset, addr, e);
+                break;
+            }
+        }
+    }
+}
+
+fn handle_tcp_stream(mut stream: TcpStream, client: door::ClientRef) {
     let mut request = [0; 1024];
     stream.set_nonblocking(false).unwrap();
     stream.read(&mut request).unwrap();

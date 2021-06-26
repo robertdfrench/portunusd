@@ -39,7 +39,10 @@ sync: #: Push latest code to development host
 ifndef SMARTOS_HOST
 	$(error You must define $$SMARTOS_HOST before proceeding)
 else
-	rsync --delete --exclude="target/*" -r . "${SMARTOS_HOST}:~/portunusd"
+	rsync -t \
+		--delete \
+		--exclude="target/*" \
+		-r . "${SMARTOS_HOST}:~/portunusd"
 endif
 
 
@@ -71,20 +74,36 @@ run: #: Run the portunusd server
 	$(call smartos, cargo run)
 
 install: #: Install PortunusD on a SmartOS host
-	$(call smartos, make /opt/local/sbin/portunusd \
-			     /opt/local/man/man8/portunusd.8.gz)
+	$(call smartos, make _install)
+			
+_install: \
+	/opt/local/man/man8/portunusd.8.gz \
+	/opt/local/man/man5/portunusd.conf.5.gz \
+	/opt/local/etc/portunusd.conf \
+	/opt/local/sbin/portunusd;
 
 /opt/local/sbin/portunusd: target/release/portunusd
 	install $< $@
 
+.PHONY: target/release/portunusd
 target/release/portunusd:
 	cargo build --release
 
 /opt/local/man/man8/portunusd.8.gz: target/release/man/portunusd.8.gz
-	install $< $@
+	install -m 644 $< $@
 
 target/release/man/portunusd.8.gz: etc/manual/portunusd.8
 	mkdir -p $(dir $@)
 	cat $< | gzip > $@
+
+/opt/local/man/man5/portunusd.conf.5.gz: target/release/man/portunusd.conf.5.gz
+	install -m 644 $< $@
+
+target/release/man/portunusd.conf.5.gz: etc/manual/portunusd.conf.5
+	mkdir -p $(dir $@)
+	cat $< | gzip > $@
+
+/opt/local/etc/portunusd.conf: etc/portunusd.conf
+	install -m 644 $< $@
 
 .PHONY: help provision docs test run clean hello_web sync install

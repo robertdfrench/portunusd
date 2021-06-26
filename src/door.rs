@@ -46,6 +46,7 @@
 //!
 //! [1]: https://github.com/robertdfrench/revolving-door
 
+
 use crate::illumos::door_h::{
     door_call,
     door_create,
@@ -62,11 +63,27 @@ use std::ptr;
 use std::slice;
 
 
+/// A borrowable door client
+///
+/// Many threads may need to call the same door application. In order to facilitate this, we
+/// bend some ownership concepts a little by introducing a derivative type called `ClientRef`. This
+/// type has a separate copy of the door descriptor, and can make calls to the door application
+/// independently of the `Client` from which it was derived.
+///
+/// # Caveat
+///
+/// There is no lifetime association between a `ClientRef` and the `Client` which produced it. If
+/// the `Client` is dropped, the door descriptor will be closed, and the `ClientRef` will no longer
+/// be able to place door calls.
 pub struct ClientRef {
     door_descriptor: libc::c_int
 }
 
 impl ClientRef {
+    /// Invoke door server procedure.
+    ///
+    /// This is intended to be called from a dedicated thread. It will block until the server
+    /// procedure calls `door_return`. 
     pub fn call(&self, request: &[u8]) -> Result<Vec<u8>,Error> {
         let mut response = Vec::with_capacity(1024);
         // the vector has length zero, so rsize is zero, so the overflow handling gets triggered
@@ -128,6 +145,10 @@ impl Client {
         cr.call(request)
     }
 
+    /// A copy of the door descriptor that can be called from another thread
+    ///
+    /// WARNING: Nothing stops the `Client` from going out of scope without invalidating associated
+    /// `ClientRef` objects. Use with caution.
     pub fn borrow(&self) -> ClientRef {
         ClientRef{ door_descriptor: self.door_descriptor }
     }
@@ -166,6 +187,17 @@ pub enum Error {
 impl From<ffi::NulError> for Error {
     fn from(other: ffi::NulError) -> Self {
         Self::InvalidPath(other)
+    }
+}
+
+impl Server {
+    /// Hand the current thread over to the door pool.
+    ///
+    /// This is useful when an application has finished starting up, and we'd like to put the
+    /// "main" thread into the thread pool available to door clients. Only use this if there is no
+    /// meaningful work for a "main" thread to be doing when the application is otherwise idle.
+    pub fn park(&self) {
+        unsafe{ door_return(ptr::null(), 0, ptr::null(), 0); }
     }
 }
 

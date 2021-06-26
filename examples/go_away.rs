@@ -54,8 +54,8 @@ fn handle_http_request(request: &str) -> String {
     }
 }
 
-// Consider the function `hello`, which returns a polite greeting to a client:
-pub fn hello(request: &[u8]) -> Vec<u8> {
+// Consider the function `go_away`, which returns a polite greeting to a client:
+pub fn go_away(request: &[u8]) -> Vec<u8> {
     let response = match from_utf8(request) {
         Err(_) => four_hundred("I couldn't understand your name!"),
         Ok(request) => handle_http_request(request),
@@ -63,12 +63,10 @@ pub fn hello(request: &[u8]) -> Vec<u8> {
     response.into_bytes()
 }
 
-derive_server_procedure!(hello as Hello);
+derive_server_procedure!(go_away as GoAway);
 
 fn main() {
     println!("Booting GoAway Application");
-    let _hello_server = Hello::install("/var/run/go_away.portunusd").unwrap();
-    loop {
-        std::thread::yield_now();
-    }
+    let go_away_server = GoAway::install("/var/run/go_away.portunusd").unwrap();
+    go_away_server.park();
 }

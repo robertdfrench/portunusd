@@ -1,0 +1,31 @@
+.\"
+.\" This Source Code Form is subject to the terms of the Mozilla Public
+.\" License, v. 2.0. If a copy of the MPL was not distributed with this
+.\" file, You can obtain one at https://mozilla.org/MPL/2.0/.
+.\"
+.\" Copyright 2021 Robert D. French
+.\"
+.TH "portunusd.conf" "5" "Jun 21, 2021" "Robert D. French" "PortunusD"
+
+.SH "NAME"
+portunusd.conf \- portunusd(8) configuration file
+
+.SH "DESCRIPTION"
+The
+.I portunusd.conf
+file tells
+.BR portunusd (8)
+which network addresses to monitor, and which door paths should receive incoming
+traffic. It must be installed at /opt/local/etc/portunusd.conf.
+
+.SH "EXAMPLE"
+.RS
+forward 0.0.0.0:80 to /var/run/hello_web.door
+.RE
+.RS
+forward 0.0.0.0:8080 to /var/run/go_away.door
+.RE
+
+.SH "SEE ALSO"
+.BR door_call (3c),
+.BR portunusd (8).

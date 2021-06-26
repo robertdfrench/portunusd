@@ -1,4 +1,3 @@
-.TH "portunusd" "8" "Jun 21, 2021" "Robert D. French" "portunusd 0.3.0"
 .\"
 .\" This Source Code Form is subject to the terms of the Mozilla Public
 .\" License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -6,11 +5,15 @@
 .\"
 .\" Copyright 2021 Robert D. French
 .\"
+.TH "portunusd" "8" "Jun 21, 2021" "Robert D. French" "PortunusD"
+
 .SH "NAME"
 .B portunusd
 \- PortunusD Network Application Server 0.3.0.
+
 .SH "SYNOPSIS"
 .B portunusd
+
 .SH "DESCRIPTION"
 .B PortunusD
 is an avant-garde network application server for illumos.
@@ -18,5 +21,11 @@ is an avant-garde network application server for illumos.
 It listens to TCP sockets, and forwards incoming traffic to applications via
 illumos doors. This allows for a limited form of client-server communication
 which can be faster than UNIX domain sockets.
+.P
+The
+.B portunusd
+daemon expects to find its config file at /opt/local/etc/portunusd.conf.
+
 .SH "SEE ALSO"
-\fIdoor_call\fR(3c).
+.BR door_call (3c),
+.BR portunusd.conf (5).

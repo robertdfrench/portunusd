@@ -67,8 +67,6 @@ derive_server_procedure!(hello as Hello);
 
 fn main() {
     println!("Booting HelloWeb Application");
-    let _hello_server = Hello::install("/var/run/hello_web.portunusd").unwrap();
-    loop {
-        std::thread::yield_now();
-    }
+    let hello_server = Hello::install("/var/run/hello_web.portunusd").unwrap();
+    hello_server.park();
 }
