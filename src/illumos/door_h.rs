@@ -163,9 +163,9 @@ pub type door_attr_t = libc::c_uint;
 /// Specified in the "Description" section of [`DOOR_CREATE(3C)`]. This flag tells the illumos
 /// kernel that we do not want door clients (in this case, the `portunusd` server) to be able to
 /// forward their file, socket, or door descriptors to us. *This may change in a future version of
-/// the [Portunus Doorway Protocol][1].* 
+/// the [DPA][1].* 
 ///
-/// [1]: https://github.com/robertdfrench/portunusd/blob/trunk/etc/PDP.md
+/// [1]: https://github.com/robertdfrench/portunusd/blob/trunk/etc/DPA.md
 /// [`DOOR_CREATE(3C)`]: https://illumos.org/man/3c/door_create#DESCRIPTION
 pub const DOOR_REFUSE_DESC: door_attr_t = 0x40; // Disable file descriptor passing.
 
