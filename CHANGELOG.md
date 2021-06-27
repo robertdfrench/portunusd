@@ -15,5 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Second example app "Go Away" to send a user away [examples/go_away.rs](examples/go_away.rs).
 
 
+## [0.2.0] - 2021-06-16
+### Added
+- Forward TCP traffic to Door Applications
+- Example HTTP echo server
+
+
 [Unreleased]: https://github.com/robertdfrench/portunusd/compare/0.3.0...HEAD
 [0.3.0]: https://github.com/robertdfrench/portunusd/compare/0.2.0...0.3.0
+[0.2.0]: https://github.com/robertdfrench/portunusd/compare/0.1.1...0.2.0
