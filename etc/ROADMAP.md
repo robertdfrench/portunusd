@@ -14,9 +14,10 @@ specified, but the idea is to tackle them more-or-less chronologically.*
 ### UDP
 
 #### [Example DNS Server]
-To be included with the default `portunusd` release as a demo app, a caching DNS
-server which forwards all requests to 8.8.8.8. It does not need configurability,
-as it is only there to demonstrate `portunusd`'s UDP handling capabilities.
+To be included with the default `portunusd` release as a demo app, a DNS server
+which only serves hardcoded zone information for `portunusd.net`. It does not
+need configurability, as it is only there to demonstrate `portunusd`'s UDP
+handling capabilities.
 
 #### [Dogfood Nameservers]
 Instead of relying on an established, competent DNS provider like
