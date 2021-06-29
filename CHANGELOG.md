@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 - See [ROADMAP](etc/ROADMAP.adoc) for more.
-
+- Read port/door mappings from a config file.
 
 ## [0.3.0] - 2021-06-20
 ### Added

@@ -8,12 +8,7 @@ PortunusD. Each item in the outline corresponds (more-or-less) to one Milestone.
 As each milestone is completed, it will be associated with a tag. 
 
 .THE ROADMAP
-. https://github.com/robertdfrench/portunusd/milestone/1[Read door and port
-settings from a config file]
-. Example DNS server
-. Make portunus optionally HTTP-aware
-.. Route HTTP to different Door Apps based on URI Path
-.. Serve static files from disk
-. Terminate TLS on behalf of Door Applications (https://github.com/ctz/rustls)
-. Forward excess requests to `portunusd` instances on other hosts
-.. Show an example web app running on multiple hosts
+. [Example DNS server](https://github.com/robertdfrench/portunusd/milestone/2)
+. [Make portunus optionally HTTP-aware](https://github.com/robertdfrench/portunusd/milestone/3)
+. [Terminate TLS on behalf of Applications](https://github.com/robertdfrench/portunusd/milestone/4)
+. [Forward excess requests to other hosts](https://github.com/robertdfrench/portunusd/milestone/5)
