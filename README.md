@@ -1,6 +1,10 @@
 # PortunusD
-[Crate](https://crates.io/crates/portunusd) &VerticalSeparator;
-[Docs](https://docs.rs/portunusd)           &VerticalSeparator;
+[Crate](https://crates.io/crates/portunusd)
+&VerticalSeparator;
+[Docs](https://docs.rs/portunusd)
+&VerticalSeparator;
+[Roadmap](https://github.com/robertdfrench/portunusd/blob/trunk/etc/ROADMAP.md)
+&VerticalSeparator;
 [Tweets](https://twitter.com/portunusd)
 
 `portunusd` is a network application server inspired by OpenBSD's [`relayd`][1]
