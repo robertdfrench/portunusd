@@ -1,0 +1,49 @@
+%% This Source Code Form is subject to the terms of the Mozilla Public
+%% License, v. 2.0. If a copy of the MPL was not distributed with this
+%% file, You can obtain one at https://mozilla.org/MPL/2.0/.
+%%
+%% Copyright 2021 Robert D. French
+
+stateDiagram-v2
+    state Booting {
+        [*] --> ReadConfig
+        ReadConfig --> OpenDoors
+        OpenDoors --> BindToPorts
+        BindToPorts --> SetNonBlocking
+        SetNonBlocking --> AddToEventPort
+    }
+    state ConcurrentTasks {
+        state EventHandler {
+            [*] --> Polling
+            Polling --> Event
+            state protocol <<choice>>
+            Event --> protocol
+            protocol --> ReadSocket: udp
+            protocol --> AcceptStream: tcp
+            AcceptStream --> SetBlocking
+            SetBlocking --> SpawnTcpHandler
+            SpawnTcpHandler --> UpdateEventPort
+            SpawnTcpHandler --> TcpHandler
+            ReadSocket --> CloneSocket
+            CloneSocket --> SpawnUdpHandler
+            SpawnUdpHandler --> UpdateEventPort
+            SpawnUdpHandler --> UdpHandler
+            UpdateEventPort --> Polling
+        }
+        --
+        state UdpHandler {
+            [*] --> DoorCall(A)
+            DoorCall(A) --> WriteToClone
+            WriteToClone --> CloseClone
+            CloseClone --> [*]
+        }
+        --
+        state TcpHandler {
+            [*] --> ReadStream
+            ReadStream --> DoorCall(B)
+            DoorCall(B) --> WriteToStream
+            WriteToStream --> FlushStream
+            FlushStream --> [*]
+        }
+    }
+    Booting --> EventHandler
