@@ -12,7 +12,7 @@ A clear and concise description of what the bug is.
 
 **To Reproduce**
 Steps to reproduce the behavior:
-1. Include your `portunus.conf` (or a minimal reproducer)
+1. Include your `portunusd.conf` (or a minimal reproducer)
 2. Any custom Door Applications (or a minimal reproducer)
 3. Any particular payloads associated with the error
 4. Any relevant portunus logs
