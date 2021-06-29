@@ -8,7 +8,7 @@ modify. If it is your first time updating a file, add your copyright to the
 bottom of the list. If you have updated a file previously, make sure the year is
 current.
 
-For example, if your name is "Marsha P. Johnson" and the year is 2030, you would
+For example, if your name is "Portunus D. Crab" and the year is 2030, you would
 add your copyright notice like so:
 
 ```rust
@@ -18,7 +18,7 @@ add your copyright notice like so:
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
  * Copyright 2021 Robert D. French
- * Copyright 2030 Marsha P. Johnson
+ * Copyright 2030 Portunus D. Crab
  */
 ```
 
