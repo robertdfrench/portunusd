@@ -118,7 +118,13 @@ fn handle_udp_socket(request: &[u8], socket: UdpSocket, addr: SocketAddr, client
 fn handle_tcp_stream(mut stream: TcpStream, client: door::ClientRef) {
     let mut request = [0; 1024];
     stream.set_nonblocking(false).unwrap();
-    stream.read(&mut request).unwrap();
+    match stream.read(&mut request) {
+        Ok(_) => {},
+        Err(e) => {
+            eprintln!("Client hung up: {}", e);
+            return
+        }
+    }
 
     let response = client.call(&request).unwrap();
 
