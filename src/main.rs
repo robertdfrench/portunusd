@@ -103,7 +103,6 @@ fn main() {
 fn handle_udp_socket(request: &[u8], socket: UdpSocket, addr: SocketAddr, client: door::ClientRef) {
     let response = client.call(&request).unwrap();
 
-    // Pfff... who needs ownership?
     let mut offset = 0;
     while offset < response.len() {
         match socket.send_to(&response[offset..], addr) {
@@ -123,6 +122,11 @@ fn handle_tcp_stream(mut stream: TcpStream, client: door::ClientRef) {
 
     let response = client.call(&request).unwrap();
 
-    stream.write(&response).unwrap();
-    stream.flush().unwrap();
+    match stream.write_all(&response) {
+        Err(e) => eprintln!("Error responding to client: {}", e),
+        Ok(_) => match stream.flush() {
+            Err(e) => eprintln!("Could not flush buffered response: {}", e),
+            Ok(_) => {},
+        },
+    }
 }
