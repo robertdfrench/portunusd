@@ -80,10 +80,15 @@ _install: \
 	/opt/local/man/man8/portunusd.8.gz \
 	/opt/local/man/man5/portunusd.conf.5.gz \
 	/opt/local/etc/portunusd.conf \
+	/opt/local/var/www/index.html \
 	/opt/local/sbin/portunusd;
 
 /opt/local/sbin/portunusd: target/release/portunusd
 	install $< $@
+
+/opt/local/var/www/index.html: etc/www/index.html
+	mkdir -p $(dir $@)
+	install -m 644 $< $@
 
 .PHONY: target/release/portunusd
 target/release/portunusd:
