@@ -59,6 +59,9 @@ use crate::illumos::stropts_h::{ fattach, fdetach };
 use crate::illumos::errno;
 use libc;
 use std::ffi;
+use std::fs::File;
+use std::os::unix::io::IntoRawFd;
+use std::path::Path;
 use std::ptr;
 use std::slice;
 
@@ -123,16 +126,14 @@ pub struct Client {
 }
 
 impl Client {
-    /// Try to create a new client, given a filesystem to a door.
+    /// Try to create a new client, given a filesystem path to a door.
     ///
     /// This may fail if the door does not exist, if the path is not a door, or if some other
     /// terrible thing has happened.
-    pub fn new(path: &str) -> Result<Self,Error> {
-        let path = ffi::CString::new(path)?;
-        match unsafe{ libc::open(path.as_ptr(), libc::O_RDONLY) } {
-            -1 => return Err(Error::OpenDoor(errno())),
-            door_descriptor => Ok(Self{ door_descriptor })
-        }
+    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self,Error> {
+        let door = File::open(path)?;
+        let door_descriptor = door.into_raw_fd();
+        Ok(Self{ door_descriptor })
     }
 
     /// Invoke the Server Procedure defined in a PortunusdD application
@@ -179,9 +180,15 @@ pub enum Error {
     InvalidPath(ffi::NulError),
     InstallJamb(libc::c_int),
     AttachDoor(libc::c_int),
-    OpenDoor(libc::c_int),
+    OpenDoor(std::io::Error),
     DoorCall(libc::c_int),
     CreateDoor(libc::c_int),
+}
+
+impl From<std::io::Error> for Error {
+    fn from(other: std::io::Error) -> Self {
+        Self::OpenDoor(other)
+    }
 }
 
 impl From<ffi::NulError> for Error {

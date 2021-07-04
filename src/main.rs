@@ -34,13 +34,24 @@ struct Relay {
     pub door: door::Client,
 }
 
-fn main() {
+#[derive(Debug)]
+enum Error {
+    Config(plan::ParseError)
+}
+
+impl From<plan::ParseError> for Error {
+    fn from(other: plan::ParseError) -> Self {
+        Self::Config(other)
+    }
+}
+
+fn main() -> Result<(),Error> {
     println!("PortunusD {} is booting up!", env!("CARGO_PKG_VERSION"));
-    let plans = plan::parse_config("/opt/local/etc/portunusd.conf").unwrap();
+    let plans = plan::parse_config("/opt/local/etc/portunusd.conf")?;
 
     let mut relays = vec![];
     for plan in &plans {
-        let door = door::Client::new(&plan.application_path.to_str().unwrap()).unwrap();
+        let door = door::Client::new(&plan.application_path).unwrap();
         let socket = match plan.protocol {
             plan::RelayProtocol::Tcp => {
                 let socket = TcpListener::bind(&plan.network_address).unwrap();
@@ -73,12 +84,12 @@ fn main() {
             match &relay.socket {
                 RelaySocket::Tcp(socket) => {
                     // Okay to unwrap because we know the socket is ready
-                    let (stream, _) = socket.accept().unwrap();
-
-                    let client = relay.door.borrow();
-                    rayon::spawn(|| {
-                        handle_tcp_stream(stream, client);
-                    });
+                    if let Ok((stream, _)) = socket.accept() {
+                        let client = relay.door.borrow();
+                        rayon::spawn(|| {
+                            handle_tcp_stream(stream, client);
+                        });
+                    }
                 },
                 RelaySocket::Udp(socket) => {
                     let mut request_buf = [0; 1024];
