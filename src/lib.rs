@@ -18,3 +18,4 @@
 pub mod door;
 pub mod illumos;
 pub mod plan;
+pub mod config;

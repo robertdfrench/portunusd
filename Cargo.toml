@@ -13,3 +13,4 @@ publish = true
 libc = "0.2.96"
 rayon = "1.5.1"
 polling = "2.1.0"
+nom = "6.2.1"
