@@ -307,6 +307,60 @@ impl FromStr for ForwardingStatement {
     }
 }
 
+#[derive(Debug,PartialEq)]
+pub struct Comment {}
+
+#[derive(Debug,PartialEq)]
+pub enum ParseCommentError {
+    Syntax
+}
+
+impl FromStr for Comment {
+    type Err = ParseCommentError;
+
+    fn from_str(input: &str) -> Result<Self,Self::Err> {
+        match input.starts_with("#") {
+            true => Ok(Self{}),
+            false => Err(Self::Err::Syntax)
+        }
+    }
+}
+
+#[derive(Debug,PartialEq)]
+pub struct Parameter {
+    key: String,
+    value: String
+}
+
+#[derive(Debug,PartialEq)]
+pub enum ParseParameterError {
+    Syntax
+}
+
+impl FromStr for Parameter {
+    type Err = ParseParameterError;
+
+    fn from_str(input: &str) -> Result<Self,Self::Err> {
+        let mut parts = input.split_whitespace();
+
+        if parts.next() != Some("set") {
+            return Err(Self::Err::Syntax);
+        }
+
+        let key = match parts.next() {
+            Some(key) => key.to_owned(),
+            None => return Err(Self::Err::Syntax)
+        };
+
+        let value = match parts.next() {
+            Some(value) => value.to_owned(),
+            None => return Err(Self::Err::Syntax)
+        };
+
+        Ok(Parameter{ key, value })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -425,6 +479,23 @@ mod tests {
         let protocol: Protocol = "http".parse().unwrap();
         let address: SocketAddr = "0.0.0.0:80".parse().unwrap();
         let expected = ForwardingStatement{ protocol, address, target };
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn can_parse_comment() {
+        let actual: Comment = "# comment".parse().unwrap();
+        let expected = Comment{};
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn can_parse_parameter() {
+        let actual: Parameter = "set pi 22/7".parse().unwrap();
+        let expected = Parameter{
+            key: "pi".to_owned(),
+            value: "22/7".to_owned()
+        };
         assert_eq!(actual, expected);
     }
 }
