@@ -307,9 +307,9 @@ impl FromStr for Protocol {
 /// it is a "GET" request whose URI begins with "/".
 #[derive(Debug,PartialEq)]
 pub struct ForwardingStatement {
-    protocol: Protocol,
-    address: SocketAddr,
-    target: ForwardingTarget
+    pub protocol: Protocol,
+    pub address: SocketAddr,
+    pub target: ForwardingTarget
 }
 
 
@@ -391,7 +391,7 @@ impl FromStr for Parameter {
 #[derive(Debug,PartialEq)]
 pub struct Config {
     parameters: HashMap<String,String>,
-    statements: Vec<ForwardingStatement>
+    pub statements: Vec<ForwardingStatement>
 }
 
 

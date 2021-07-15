@@ -9,9 +9,11 @@
 
 use polling::{Event, Poller};
 use portunusd::door;
-use portunusd::plan;
+use portunusd::config;
 use rayon;
-use std::io::{Read,Write};
+use std::fs::File;
+use std::io::Read;
+use std::io::Write;
 use std::net::{SocketAddr,TcpListener,TcpStream,UdpSocket};
 use std::os::unix::io::{AsRawFd, RawFd};
 
@@ -36,33 +38,58 @@ struct Relay {
 
 #[derive(Debug)]
 enum Error {
-    Config(plan::ParseError)
+    Config(config::ParseError),
+    IO(std::io::Error)
 }
 
-impl From<plan::ParseError> for Error {
-    fn from(other: plan::ParseError) -> Self {
+impl From<config::ParseError> for Error {
+    fn from(other: config::ParseError) -> Self {
         Self::Config(other)
     }
 }
 
+impl From<std::io::Error> for Error {
+    fn from(other: std::io::Error) -> Self {
+        Self::IO(other)
+    }
+}
+
+fn read_config(path: &str) -> Result<config::Config,Error> {
+    let mut contents = String::new();
+    let mut file = File::open(path)?;
+    file.read_to_string(&mut contents)?;
+
+    Ok(contents.parse::<config::Config>()?)
+}
+
 fn main() -> Result<(),Error> {
     println!("PortunusD {} is booting up!", env!("CARGO_PKG_VERSION"));
-    let plans = plan::parse_config("/opt/local/etc/portunusd.conf")?;
+    let config = read_config("/opt/local/etc/portunusd.conf")?;
 
     let mut relays = vec![];
-    for plan in &plans {
-        let door = door::Client::new(&plan.application_path).unwrap();
-        let socket = match plan.protocol {
-            plan::RelayProtocol::Tcp => {
-                let socket = TcpListener::bind(&plan.network_address).unwrap();
+    for statement in &config.statements {
+        let door_path = match &statement.target {
+            config::ForwardingTarget::Atlas(_) => continue,
+            config::ForwardingTarget::Door(door_path) => door_path
+        };
+        let door = door::Client::new(&door_path).unwrap();
+        let socket = match statement.protocol {
+            config::Protocol::TCP => {
+                let socket = TcpListener::bind(&statement.address).unwrap();
                 socket.set_nonblocking(true).unwrap();
                 RelaySocket::Tcp(socket)
             },
-            plan::RelayProtocol::Udp => {
-                let socket = UdpSocket::bind(&plan.network_address).unwrap();
+            config::Protocol::UDP => {
+                let socket = UdpSocket::bind(&statement.address).unwrap();
                 socket.set_nonblocking(true).unwrap();
                 RelaySocket::Udp(socket)
             },
+            _ => {
+                // treat as generic TCP for now
+                let socket = TcpListener::bind(&statement.address).unwrap();
+                socket.set_nonblocking(true).unwrap();
+                RelaySocket::Tcp(socket)
+            }
         };
 
         relays.push(Relay{ door, socket });
@@ -128,7 +155,13 @@ fn handle_udp_socket(request: &[u8], socket: UdpSocket, addr: SocketAddr, client
 
 fn handle_tcp_stream(mut stream: TcpStream, client: door::ClientRef) {
     let mut request = [0; 1024];
-    stream.set_nonblocking(false).unwrap();
+    match stream.set_nonblocking(false) {
+        Ok(_) => {},
+        Err(e) => {
+            eprintln!("Cancelling request: {}", e);
+            return
+        }
+    }
     match stream.read(&mut request) {
         Ok(_) => {},
         Err(e) => {
@@ -137,7 +170,13 @@ fn handle_tcp_stream(mut stream: TcpStream, client: door::ClientRef) {
         }
     }
 
-    let response = client.call(&request).unwrap();
+    let response = match client.call(&request) {
+        Ok(response) => response,
+        Err(e) => {
+            eprintln!("Door refused our call: {}", e);
+            return
+        }
+    };
 
     match stream.write_all(&response) {
         Err(e) => eprintln!("Error responding to client: {}", e),

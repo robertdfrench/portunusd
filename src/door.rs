@@ -59,6 +59,7 @@ use crate::illumos::stropts_h::{ fattach, fdetach };
 use crate::illumos::errno;
 use libc;
 use std::ffi;
+use std::fmt;
 use std::fs::File;
 use std::os::unix::io::IntoRawFd;
 use std::path::Path;
@@ -183,6 +184,20 @@ pub enum Error {
     OpenDoor(std::io::Error),
     DoorCall(libc::c_int),
     CreateDoor(libc::c_int),
+}
+
+impl fmt::Display for Error {
+    // Need to look up all these errnos with strerror_r or something
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidPath(e) => write!(f, "Door path contained a misplaced NULL: {}", e),
+            Self::InstallJamb(errno) => write!(f, "Could not install jamb: {}", errno),
+            Self::AttachDoor(errno) => write!(f, "Could not attach door: {}", errno),
+            Self::OpenDoor(e) => write!(f, "Could not open door: {}", e),
+            Self::DoorCall(errno) => write!(f, "Could not call door: {}", errno),
+            Self::CreateDoor(errno) => write!(f, "Could not create door: {}", errno)
+        }
+    }
 }
 
 impl From<std::io::Error> for Error {
