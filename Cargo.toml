@@ -2,7 +2,7 @@
 name = "portunusd"
 version = "0.3.0"
 authors = ["Robert D. French <robert@robertdfrench.me>"]
-edition = "2018"
+edition = "2021"
 description = "Avant-garde Network Application Server for illumos"
 repository = "https://github.com/robertdfrench/portunusd"
 license = "MPL-2.0"
@@ -11,5 +11,3 @@ publish = true
 
 [dependencies]
 libc = "0.2.96"
-rayon = "1.5.1"
-polling = "2.1.0"

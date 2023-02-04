@@ -18,14 +18,15 @@
 //! use portunusd::door;
 //! use std::fmt::format;
 //! use std::str::from_utf8;
+//! use std::os::fd::RawFd;
 //!
 //! // Consider the function `hello`, which returns a polite greeting to a client:
-//! fn hello(request: &[u8]) -> Vec<u8> {
+//! fn hello(_: Vec<RawFd>, request: &[u8]) -> (Vec<RawFd>, Vec<u8>) {
 //!     match from_utf8(request) {
-//!         Err(_) => b"I couldn't understand your name!".to_vec(),
+//!         Err(_) => (vec![], b"I couldn't understand your name!".to_vec()),
 //!         Ok(name) => {
 //!             let response = format!("Hello, {}!", name);
-//!             response.into_bytes()
+//!             (vec![], response.into_bytes())
 //!         }
 //!     }
 //! }
@@ -39,7 +40,7 @@
 //!
 //! // Now a client (even one in another process!) can call this procedure:
 //! let hello_client = door::Client::new("portunusd_test.04683b").unwrap();
-//! let greeting = hello_client.call(b"Portunus").unwrap();
+//! let greeting = hello_client.call(vec![], b"Portunus").unwrap();
 //!
 //! assert_eq!(greeting, b"Hello, Portunus!");
 //! ```
@@ -51,8 +52,11 @@ use crate::illumos::door_h::{
     door_call,
     door_create,
     door_arg_t,
-    DOOR_REFUSE_DESC,
+    DOOR_DESCRIPTOR,
+    DOOR_RELEASE,
     door_desc_t,
+    door_desc_t__d_data,
+    door_desc_t__d_data__d_desc,
     door_return,
 };
 use crate::illumos::stropts_h::{ fattach, fdetach };
@@ -61,6 +65,9 @@ use libc;
 use std::ffi;
 use std::fmt;
 use std::fs::File;
+use std::os::fd;
+use std::os::fd::AsRawFd;
+use std::os::fd::FromRawFd;
 use std::os::unix::io::IntoRawFd;
 use std::path::Path;
 use std::ptr;
@@ -79,6 +86,7 @@ use std::slice;
 /// There is no lifetime association between a `ClientRef` and the `Client` which produced it. If
 /// the `Client` is dropped, the door descriptor will be closed, and the `ClientRef` will no longer
 /// be able to place door calls.
+#[derive(Clone,Copy)]
 pub struct ClientRef {
     door_descriptor: libc::c_int
 }
@@ -88,16 +96,20 @@ impl ClientRef {
     ///
     /// This is intended to be called from a dedicated thread. It will block until the server
     /// procedure calls `door_return`. 
-    pub fn call(&self, request: &[u8]) -> Result<Vec<u8>,Error> {
+    pub fn call(&self, raw_descriptors: Vec<fd::RawFd>, request: &[u8]) -> Result<Vec<u8>,Error> {
         let mut response = Vec::with_capacity(1024);
         // the vector has length zero, so rsize is zero, so the overflow handling gets triggered
         // which fucks up alignment so data_ptr > rbuf
 
+        let mut door_descriptors: Vec<door_desc_t> = raw_descriptors.into_iter().map(|raw| {
+            unsafe { door_desc_t::from_raw_fd(raw) }
+        }).collect();
+
         let mut arg = door_arg_t {
             data_ptr: request.as_ptr() as *const i8,
             data_size: request.len(),
-            desc_ptr: ptr::null(),
-            desc_num: 0,
+            desc_ptr: door_descriptors.as_mut_ptr(),
+            desc_num: door_descriptors.len() as u32,
             rbuf: response.as_mut_ptr() as *const i8,
             rsize: response.len()
         };
@@ -142,9 +154,9 @@ impl Client {
     /// Forwad a slice of bytes through a door to a PortunusD application. If successful, the
     /// resulting `Vec<u8>` will contain the bytes returned from the application's server
     /// procedure.
-    pub fn call(&self, request: &[u8]) -> Result<Vec<u8>,Error> {
+    pub fn call(&self, descriptors: Vec<fd::RawFd>, request: &[u8]) -> Result<Vec<u8>,Error> {
         let cr = self.borrow();
-        cr.call(request)
+        cr.call(descriptors, request)
     }
 
     /// A copy of the door descriptor that can be called from another thread
@@ -218,7 +230,7 @@ impl Server {
     /// This is useful when an application has finished starting up, and we'd like to put the
     /// "main" thread into the thread pool available to door clients. Only use this if there is no
     /// meaningful work for a "main" thread to be doing when the application is otherwise idle.
-    pub fn park(&self) {
+    pub fn park(&self) -> ! {
         unsafe{ door_return(ptr::null(), 0, ptr::null(), 0); }
     }
 }
@@ -239,6 +251,28 @@ impl Drop for Server {
     }
 }
 
+impl AsRawFd for door_desc_t {
+    fn as_raw_fd(&self) -> fd::RawFd {
+        let d_data = &self.d_data;
+        let d_desc = unsafe{ d_data.d_desc };
+        let d_descriptor = d_desc.d_descriptor;
+        d_descriptor as fd::RawFd
+    }
+}
+
+impl FromRawFd for door_desc_t {
+    unsafe fn from_raw_fd(raw: fd::RawFd) -> Self {
+        let d_descriptor = raw as libc::c_int;
+        let d_id = 0; // TODO: Confirm "door 0" is appropriate / not wrong for passing sockets
+        let d_desc = door_desc_t__d_data__d_desc { d_descriptor, d_id };
+        let d_data = door_desc_t__d_data { d_desc };
+
+        let d_attributes = DOOR_DESCRIPTOR | DOOR_RELEASE;
+        Self { d_attributes, d_data }
+    }
+}
+
+
 /// Trait for types derived from the `define_server_procedure!` macro.
 ///
 /// Because `define_server_procedure!` creates a new type to "host" each server procedure, we need
@@ -249,7 +283,7 @@ pub trait ServerProcedure {
     /// This is the part you define.  The function body you give in `define_server_procedure!` will
     /// end up as the definition of this `rust` function, which will be called by the associated
     /// `c_wrapper` function in this trait.
-    fn rust_wrapper(request: &[u8]) -> Vec<u8>;
+    fn rust_wrapper(descriptors: Vec<fd::RawFd>, request: &[u8]) -> (Vec<fd::RawFd>, Vec<u8>);
 
     /// This is a wrapper that fits the Doors API All it does is pack and unpack data so that our
     /// server procedure doesn't have to deal with the doors api directly. Its unusual signature
@@ -260,14 +294,26 @@ pub trait ServerProcedure {
         _cookie: *const libc::c_void,
         argp: *const libc::c_char,
         arg_size: libc::size_t,
-        _dp: *const door_desc_t,
-        _n_desc: libc::c_uint
+        dp: *const door_desc_t,
+        n_desc: libc::c_uint
     ) {
         let request = unsafe{ slice::from_raw_parts(argp as *const u8, arg_size) };
-        let response = Self::rust_wrapper(request);
+        let in_door_descriptors = unsafe{ slice::from_raw_parts::<door_desc_t>(dp, n_desc as usize) };
+        let in_raw_descriptors: Vec<fd::RawFd> = in_door_descriptors.iter().map(|dd| {
+            dd.as_raw_fd()
+        }).collect();
+
+        let (out_raw_descriptors, response) = Self::rust_wrapper(in_raw_descriptors, request);
+
+        let out_door_descriptors: Vec<door_desc_t> = out_raw_descriptors.into_iter().map(|raw| {
+            unsafe{ door_desc_t::from_raw_fd(raw) }
+        }).collect();
+
         let data_ptr = response.as_ptr();
         let data_size = response.len();
-        unsafe{ door_return(data_ptr as *const libc::c_char, data_size, ptr::null(), 0); }
+        let desc_ptr = out_door_descriptors.as_ptr();
+        let desc_size = out_door_descriptors.len();
+        unsafe{ door_return(data_ptr as *const libc::c_char, data_size, desc_ptr, desc_size as libc::c_uint); }
     }
 
     /// Make this procedure available on the filesystem (as a door).
@@ -275,7 +321,7 @@ pub trait ServerProcedure {
         let jamb_path = ffi::CString::new(path)?;
 
         // Create door
-        let door_descriptor = unsafe{ door_create(Self::c_wrapper, ptr::null(), DOOR_REFUSE_DESC) };
+        let door_descriptor = unsafe{ door_create(Self::c_wrapper, ptr::null(), 0) };
         if door_descriptor == -1 {
             return Err(Error::CreateDoor(errno()));
         }
@@ -316,14 +362,15 @@ pub trait ServerProcedure {
 /// use portunusd::derive_server_procedure;
 /// use std::fmt::format;
 /// use std::str::from_utf8;
+/// use std::os::fd::RawFd;
 ///
 /// // Consider this function, which returns a polite greeting to a client:
-/// fn hello(request: &[u8]) -> Vec<u8> {
+/// fn hello(_: Vec<RawFd>, request: &[u8]) -> (Vec<RawFd>, Vec<u8>) {
 ///     match from_utf8(request) {
-///         Err(_) => b"Your name is not valid utf8".to_vec(),
+///         Err(_) => (vec![], b"Your name is not valid utf8".to_vec()),
 ///         Ok(name) => {
 ///             let response = format!("Hello, {}!", name);
-///             response.into_bytes()
+///             (vec![], response.into_bytes())
 ///         }
 ///     }
 /// }
@@ -346,9 +393,21 @@ macro_rules! derive_server_procedure {
         use portunusd::door::ServerProcedure;
         struct $type_name;
         impl ServerProcedure for $type_name {
-            fn rust_wrapper(request: &[u8]) -> Vec<u8> {
-                $function_name(request)
+            fn rust_wrapper(in_descriptors: Vec<std::os::fd::RawFd>, request: &[u8]) -> (Vec<std::os::fd::RawFd>, Vec<u8>) {
+                $function_name(in_descriptors, request)
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn raw_fd_to_door_desc_and_back() {
+        let raw: fd::RawFd = 6;
+        let dd = unsafe{ door_desc_t::from_raw_fd(raw) };
+        assert_eq!(dd.as_raw_fd(), raw);
     }
 }

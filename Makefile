@@ -16,6 +16,11 @@ help: #: Build this help menu from Makefile target comments (default)
 		| sort | column -s "#" -t
 
 
+retry:
+	ps aux | awk '/target\/debug\/portun/ { print $$2 }' | xargs kill
+	rm -f hello.door
+	cargo run
+
 # Remote development can be a pain. The "smartos" macro makes it possible to run
 # commands either from a smartos host or from a workstation which has ssh
 # access to a smartos host. If a task wraps all its commands in the smartos

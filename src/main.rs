@@ -7,182 +7,120 @@
  */
 //! Portunus Daemon
 
-use polling::{Event, Poller};
+// Types
+use portunusd::counter;
 use portunusd::door;
-use portunusd::config;
-use rayon;
-use std::fs::File;
-use std::io::Read;
+use portunusd::derive_server_procedure;
+use std::any;
+use std::io;
+use std::sync::mpsc;
+use std::net;
+use std::thread;
+use std::os::fd;
+
+// Macros
+#[macro_use]
+mod errors;
+
+// Traits
 use std::io::Write;
-use std::net::{SocketAddr,TcpListener,TcpStream,UdpSocket};
-use std::os::unix::io::{AsRawFd, RawFd};
+use std::os::fd::FromRawFd;
+use std::os::fd::IntoRawFd;
 
-enum RelaySocket {
-    Tcp(TcpListener),
-    Udp(UdpSocket),
+define_error_enum!(
+    pub enum MainError {
+        Io(io::Error),
+        Door(portunusd::door::Error),
+        Send(mpsc::SendError<net::TcpStream>),
+        Join(Box<dyn any::Any + Send>)
+    }
+);
+
+define_error_enum!(
+    pub enum AttendError {
+        Io(io::Error),
+        Recv(mpsc::RecvError),
+        Door(portunusd::door::Error)
+    }
+);
+
+struct DoorAttendant {
+    sender: mpsc::Sender<net::TcpStream>,
+    join_handle: thread::JoinHandle<()>
 }
 
-impl AsRawFd for RelaySocket {
-    fn as_raw_fd(&self) -> RawFd {
-        match self {
-            Self::Tcp(socket) => socket.as_raw_fd(),
-            Self::Udp(socket) => socket.as_raw_fd(),
+impl DoorAttendant {
+    fn new(doorc: door::ClientRef) -> Self {
+        let (sender, mut receiver) = mpsc::channel();
+        let join_handle = thread::spawn(move|| {
+            loop {
+                if let Err(e) = Self::attend(&mut receiver, doorc) {
+                    eprintln!("Door error: {:?}", e);
+                    let name = std::ffi::CString::new("Door problem").expect("CString::new failed");
+                    unsafe{ libc::perror(name.as_ptr()) };
+                }
+            }
+        });
+        Self{ sender, join_handle }
+    }
+
+    fn attend(receiver: &mut mpsc::Receiver<net::TcpStream>, doorc: door::ClientRef) -> Result<(), AttendError> {
+        let client = receiver.recv()?;
+        doorc.call(vec![client.into_raw_fd()], &vec![])?;
+        Ok(())
+    }
+
+    fn send(&self, stream: net::TcpStream) -> Result<(), mpsc::SendError<net::TcpStream>> {
+        self.sender.send(stream)
+    }
+
+    fn join(self) -> Result<(), Box<(dyn any::Any + Send + 'static)>> {
+        self.join_handle.join()
+    }
+}
+
+fn hello(descriptors: Vec<fd::RawFd>, _request: &[u8]) -> (Vec<fd::RawFd>, Vec<u8>) {
+    if descriptors.len() > 0 {
+        let mut client = unsafe{ std::net::TcpStream::from_raw_fd(descriptors[0]) };
+        writeln!(&mut client, "HTTP/1.1 200 OK").unwrap();
+        writeln!(&mut client, "Content-Type: text/plain").unwrap();
+        writeln!(&mut client, "Content-Length: 6").unwrap();
+        writeln!(&mut client, "").unwrap();
+        writeln!(&mut client, "Hello").unwrap();
+    }
+    (vec![], vec![])
+}
+derive_server_procedure!(hello as Hello);
+
+fn main() -> Result<(),MainError> {
+    for arg in std::env::args() {
+        if arg == "hello" {
+            println!("Hello App is booting up!");
+            let hello_server = Hello::install("hello.door")?;
+            hello_server.park(); // No return from here
         }
     }
-}
-
-struct Relay {
-    pub socket: RelaySocket,
-    pub door: door::Client,
-}
-
-#[derive(Debug)]
-enum Error {
-    Config(config::ParseError),
-    IO(std::io::Error)
-}
-
-impl From<config::ParseError> for Error {
-    fn from(other: config::ParseError) -> Self {
-        Self::Config(other)
-    }
-}
-
-impl From<std::io::Error> for Error {
-    fn from(other: std::io::Error) -> Self {
-        Self::IO(other)
-    }
-}
-
-fn read_config(path: &str) -> Result<config::Config,Error> {
-    let mut contents = String::new();
-    let mut file = File::open(path)?;
-    file.read_to_string(&mut contents)?;
-
-    Ok(contents.parse::<config::Config>()?)
-}
-
-fn main() -> Result<(),Error> {
     println!("PortunusD {} is booting up!", env!("CARGO_PKG_VERSION"));
-    let config = read_config("/opt/local/etc/portunusd.conf")?;
+    let hello_client = door::Client::new("hello.door")?;
 
-    let mut relays = vec![];
-    for statement in &config.statements {
-        let door_path = match &statement.target {
-            config::ForwardingTarget::Atlas(_) => continue,
-            config::ForwardingTarget::Door(door_path) => door_path
-        };
-        let door = door::Client::new(&door_path).unwrap();
-        let socket = match statement.protocol {
-            config::Protocol::TCP => {
-                let socket = TcpListener::bind(&statement.address).unwrap();
-                socket.set_nonblocking(true).unwrap();
-                RelaySocket::Tcp(socket)
-            },
-            config::Protocol::UDP => {
-                let socket = UdpSocket::bind(&statement.address).unwrap();
-                socket.set_nonblocking(true).unwrap();
-                RelaySocket::Udp(socket)
-            },
-            _ => {
-                // treat as generic TCP for now
-                let socket = TcpListener::bind(&statement.address).unwrap();
-                socket.set_nonblocking(true).unwrap();
-                RelaySocket::Tcp(socket)
-            }
-        };
+    let listener = net::TcpListener::bind("0.0.0.0:8080")?;
+    let mut door_attendants = vec![];
+    let num_cpus = thread::available_parallelism()?;
 
-        relays.push(Relay{ door, socket });
+    for _ in 0..num_cpus.get() {
+        door_attendants.push(DoorAttendant::new(hello_client.borrow()));
     }
 
-    let poller = Poller::new().unwrap();
-    for (key,relay) in relays.iter().enumerate() {
-        poller.add(&relay.socket, Event::readable(key)).unwrap();
+    let mut rr = counter::RoundRobin::new(&door_attendants);
+    for stream in listener.incoming() {
+        let stream = stream?;
+
+        rr.next().send(stream)?;
     }
 
-    let mut events = Vec::new();
-    loop {
-        events.clear();
-        poller.wait(&mut events, None).unwrap();
-
-        for event in &events {
-            // A new client has arrived
-            let relay = &relays[event.key]; // We know this exists b/c enumerate
-            match &relay.socket {
-                RelaySocket::Tcp(socket) => {
-                    // Okay to unwrap because we know the socket is ready
-                    if let Ok((stream, _)) = socket.accept() {
-                        let client = relay.door.borrow();
-                        rayon::spawn(|| {
-                            handle_tcp_stream(stream, client);
-                        });
-                    }
-                },
-                RelaySocket::Udp(socket) => {
-                    let mut request_buf = [0; 1024];
-
-                    // Okay to unwrap because we know the socket is ready;
-                    let (n, addr) = socket.recv_from(&mut request_buf).unwrap();
-                    let client = relay.door.borrow();
-                    let csocket = socket.try_clone().unwrap();
-
-                    rayon::spawn(move || {
-                        let request = &request_buf[..n];
-                        handle_udp_socket(request, csocket, addr, client);
-                    });
-                },
-            }
-
-            poller.modify(&relay.socket, Event::readable(event.key)).unwrap();
-        }
-    }
-}
-
-fn handle_udp_socket(request: &[u8], socket: UdpSocket, addr: SocketAddr, client: door::ClientRef) {
-    let response = client.call(&request).unwrap();
-
-    let mut offset = 0;
-    while offset < response.len() {
-        match socket.send_to(&response[offset..], addr) {
-            Ok(n) => offset += n,
-            Err(e) => {
-                eprintln!("error after writing {} bytes to {}: {}", offset, addr, e);
-                break;
-            }
-        }
-    }
-}
-
-fn handle_tcp_stream(mut stream: TcpStream, client: door::ClientRef) {
-    let mut request = [0; 1024];
-    match stream.set_nonblocking(false) {
-        Ok(_) => {},
-        Err(e) => {
-            eprintln!("Cancelling request: {}", e);
-            return
-        }
-    }
-    match stream.read(&mut request) {
-        Ok(_) => {},
-        Err(e) => {
-            eprintln!("Client hung up: {}", e);
-            return
-        }
+    for attendant in door_attendants {
+        attendant.join()?;
     }
 
-    let response = match client.call(&request) {
-        Ok(response) => response,
-        Err(e) => {
-            eprintln!("Door refused our call: {}", e);
-            return
-        }
-    };
-
-    match stream.write_all(&response) {
-        Err(e) => eprintln!("Error responding to client: {}", e),
-        Ok(_) => match stream.flush() {
-            Err(e) => eprintln!("Could not flush buffered response: {}", e),
-            Ok(_) => {},
-        },
-    }
+    Ok(())
 }

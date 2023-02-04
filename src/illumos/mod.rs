@@ -77,7 +77,7 @@ mod tests {
             let capitalized = original.to_ascii_uppercase();
             let capitalized = CString::new(capitalized).unwrap();
             unsafe { door_h::door_return(capitalized.as_ptr(), arg_size, ptr::null(), 0) };
-        };
+        }
 
         // Clean up any doors which may still be lingering from a previous test.
         let door_path = Path::new("/tmp/relaydoors_test_f431a5");

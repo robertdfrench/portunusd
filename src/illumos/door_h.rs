@@ -114,6 +114,7 @@ extern "C" {
 /// See [`DOOR_CALL(3C)`] for more details.
 ///
 /// [`DOOR_CALL(3C)`]: https://illumos.org/man/3c/door_call
+#[derive(Debug)]
 #[repr(C)]
 pub struct door_arg_t {
     pub data_ptr: *const libc::c_char,
@@ -168,6 +169,8 @@ pub type door_attr_t = libc::c_uint;
 /// [1]: https://github.com/robertdfrench/portunusd/blob/trunk/etc/DPA.md
 /// [`DOOR_CREATE(3C)`]: https://illumos.org/man/3c/door_create#DESCRIPTION
 pub const DOOR_REFUSE_DESC: door_attr_t = 0x40; // Disable file descriptor passing.
+pub const DOOR_DESCRIPTOR: door_attr_t = 0x10000; // A file descriptor is being passed.
+pub const DOOR_RELEASE: door_attr_t = 0x40000; // Passed references are also released.
 
 
 /// `d_data` component of `door_desc_t`
@@ -190,8 +193,8 @@ pub union door_desc_t__d_data {
 /// original definition in [doors.h][1].
 ///
 /// [1]: https://github.com/illumos/illumos-gate/blob/master/usr/src/uts/common/sys/door.h#L122
-#[derive(Copy,Clone)]
-#[repr(C)]
+#[derive(Debug,Copy,Clone)]
+#[repr(C,packed)]
 pub struct door_desc_t__d_data__d_desc {
     pub d_descriptor: libc::c_int,
     pub d_id: door_id_t

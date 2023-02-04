@@ -15,6 +15,8 @@
 //! throwing away all the luxuries of the operating system.
 
 
-pub mod door;
-pub mod illumos;
 pub mod config;
+pub mod counter;
+pub mod door;
+pub mod errors;
+pub mod illumos;
