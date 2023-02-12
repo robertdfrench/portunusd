@@ -24,13 +24,10 @@ add your copyright notice like so:
 
 
 ### Add the Best Documentation you can Muster
-The PortunusD source code is documented in American English, with an attempt to
-use the 17th Edition of the Chicago Manual of Style (as best it can be stretched
-to apply to this kind of writing). If English is not your first language, or if
-writing is not your greatest passion, *I would be glad to help you*.
-
-It's okay if your writing is imperfect, but it's not okay to expect the code to 
-document itself.
+The PortunusD source code is documented according to the 17th Edition of the
+Chicago Manual of Style (as best it can be stretched to apply to this kind of
+writing). If writing is not your strong suit, no worries! Give it your best
+shot and we'll be happy to work out the differences during code review.
 
 
 ### Read and Follow the Code of Conduct
