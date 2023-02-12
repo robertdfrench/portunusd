@@ -22,7 +22,7 @@ use std::str::FromStr;
 
 /// HTTP Request Methods
 ///
-/// See https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods
+/// See <https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods>
 #[derive(Debug,PartialEq)]
 pub enum Method {
     GET,
