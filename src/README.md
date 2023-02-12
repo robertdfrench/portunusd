@@ -6,7 +6,51 @@
 and opening all of the specified ports and doors. Each port is marked
 nonblocking, and added to illumos' [event port][1] system.
 
-![Detailed Server State](../etc/diagrams/detailed-server-state.png)
+```mermaid
+stateDiagram-v2
+    state Booting {
+        [*] --> ReadConfig
+        ReadConfig --> OpenDoors
+        OpenDoors --> BindToPorts
+        BindToPorts --> SetNonBlocking
+        SetNonBlocking --> AddToEventPort
+    }
+    state ConcurrentTasks {
+        state EventHandler {
+            [*] --> Polling
+            Polling --> Event
+            state protocol <<choice>>
+            Event --> protocol
+            protocol --> ReadSocket: udp
+            protocol --> AcceptStream: tcp
+            AcceptStream --> SetBlocking
+            SetBlocking --> SpawnTcpHandler
+            SpawnTcpHandler --> UpdateEventPort
+            SpawnTcpHandler --> TcpHandler
+            ReadSocket --> CloneSocket
+            CloneSocket --> SpawnUdpHandler
+            SpawnUdpHandler --> UpdateEventPort
+            SpawnUdpHandler --> UdpHandler
+            UpdateEventPort --> Polling
+        }
+        --
+        state UdpHandler {
+            [*] --> DoorCall(A)
+            DoorCall(A) --> WriteToClone
+            WriteToClone --> CloseClone
+            CloseClone --> [*]
+        }
+        --
+        state TcpHandler {
+            [*] --> ReadStream
+            ReadStream --> DoorCall(B)
+            DoorCall(B) --> WriteToStream
+            WriteToStream --> FlushStream
+            FlushStream --> [*]
+        }
+    }
+    Booting --> EventHandler
+```
 
 As client traffic arrives, the kernel will wake up the main `EventHandler`
 thread and make it aware of new events. UDP and TCP events are handled in

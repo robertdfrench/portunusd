@@ -14,7 +14,22 @@ application, and returning the response in a similar manner.  `portunusd` maps
 each connected port to a door on the filesystem provided by the target
 application.
 
-![Startup and Request Handling](etc/diagrams/startup-and-request-handling.png)
+```mermaid
+sequenceDiagram
+    participant Client
+    participant PortunusD
+    participant Door
+    participant Application
+    Application->>Door: Create /var/run/app.door
+    PortunusD->>Door: Open
+    PortunusD->>PortunusD: listen on port 80
+    loop Handle Requests
+        Client->>+PortunusD: Send HTTP Request
+        PortunusD->>+Application: Forward request via door_call
+        Application->>-PortunusD: Send response via door_return
+        PortunusD->>-Client: Send HTTP Response
+    end
+```
 
 The main goal of `portunusd` is to facilitate the scaling of single-threaded
 applications. Under the `inetd` model, a new process is created to handle every
