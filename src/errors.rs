@@ -1,3 +1,17 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Copyright 2023 Robert D. French
+ */
+//! Error handling macros
+//!
+//! This module defines some error-handling macros which aim to facilitate error handling in
+//! PortunusD. Though they are defined in this module, rust associates them with the crate itself,
+//! so refer to the crate-level documentation to see the documentation for these macros.
+
+
 /// Derive a single `From<Error>` implementation.
 ///
 /// This macro derives a simple `From<Error>` implementation, making it easier to use the `?`
