@@ -8,24 +8,30 @@
 //! Portunus Daemon
 
 // Types
-use portunusd::counter;
 use portunusd::door;
-use portunusd::derive_server_procedure;
 use std::any;
 use std::io;
 use std::sync::mpsc;
 use std::net;
+use std::path;
 use std::thread;
 use std::os::fd;
 
 // Macros
-#[macro_use]
-mod errors;
+use portunusd::derive_server_procedure;
+use portunusd::define_error_enum;
 
 // Traits
-use std::io::Write;
-use std::os::fd::FromRawFd;
+use clap::Parser;
 use std::os::fd::IntoRawFd;
+
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    /// Override custom door file
+    #[arg(short, long, value_name = "FILE")]
+    door: Option<path::PathBuf>,
+}
 
 define_error_enum!(
     pub enum MainError {
@@ -79,48 +85,22 @@ impl DoorAttendant {
     }
 }
 
-fn hello(descriptors: Vec<fd::RawFd>, _request: &[u8]) -> (Vec<fd::RawFd>, Vec<u8>) {
-    if descriptors.len() > 0 {
-        let mut client = unsafe{ std::net::TcpStream::from_raw_fd(descriptors[0]) };
-        writeln!(&mut client, "HTTP/1.1 200 OK").unwrap();
-        writeln!(&mut client, "Content-Type: text/plain").unwrap();
-        writeln!(&mut client, "Content-Length: 6").unwrap();
-        writeln!(&mut client, "").unwrap();
-        writeln!(&mut client, "Hello").unwrap();
+fn hello(_descriptors: Vec<fd::RawFd>, request: &[u8]) -> (Vec<fd::RawFd>, Vec<u8>) {
+    if request.len() == 1 {
+        if request[0] == 69 {
+            std::process::exit(0);
+        }
     }
-    (vec![], vec![])
+    (vec![], vec![0xF0, 0x9F, 0xA6, 0x80])
 }
 derive_server_procedure!(hello as Hello);
 
 fn main() -> Result<(),MainError> {
-    for arg in std::env::args() {
-        if arg == "hello" {
-            println!("Hello App is booting up!");
-            let hello_server = Hello::install("hello.door")?;
-            hello_server.park(); // No return from here
-        }
-    }
-    println!("PortunusD {} is booting up!", env!("CARGO_PKG_VERSION"));
-    let hello_client = door::Client::new("hello.door")?;
-
-    let listener = net::TcpListener::bind("0.0.0.0:8080")?;
-    let mut door_attendants = vec![];
-    let num_cpus = thread::available_parallelism()?;
-
-    for _ in 0..num_cpus.get() {
-        door_attendants.push(DoorAttendant::new(hello_client.borrow()));
-    }
-
-    let mut rr = counter::RoundRobin::new(&door_attendants);
-    for stream in listener.incoming() {
-        let stream = stream?;
-
-        rr.next().send(stream)?;
-    }
-
-    for attendant in door_attendants {
-        attendant.join()?;
-    }
-
-    Ok(())
+    let cli = Cli::parse();
+    let door_path = cli.door.unwrap_or(path::Path::new("/var/run/portunusd.door").to_path_buf());
+    println!("PortunusD is booting up!");
+    let door_path_str = door_path.to_str().ok_or(io::Error::new(io::ErrorKind::Other, "invalid door path"))?;
+    unsafe{ libc::daemon(0,0) };
+    let hello_server = Hello::install(door_path_str)?;
+    hello_server.park(); // No return from here
 }

@@ -10,4 +10,5 @@ keywords = ["illumos", "door", "port"]
 publish = true
 
 [dependencies]
+clap = { version = "4.1.4", features = ["derive"] }
 libc = "0.2.96"
