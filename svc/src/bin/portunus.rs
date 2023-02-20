@@ -8,7 +8,6 @@
 //! Portunus Controller
 
 // Types
-use portunusd::door;
 use std::io;
 use std::path;
 use std::process;
@@ -22,7 +21,7 @@ use clap::ValueEnum;
 
 define_error_enum!(
     pub enum MainError {
-        Door(portunusd::door::Error),
+        Door(doors::Error),
         Utf8(std::string::FromUtf8Error),
         Io(io::Error)
     }
@@ -65,7 +64,7 @@ fn main() -> Result<(),MainError> {
         Mode::Status => {
             let door_path = cli.door.unwrap_or(path::Path::new("/var/run/portunusd.door").to_path_buf());
 
-            match door::Client::new(door_path) {
+            match doors::Client::new(door_path) {
                 Ok(portunusd_client) => {
                     let content = portunusd_client.call(vec![], &vec![])?;
                     let response = String::from_utf8(content)?;
@@ -79,7 +78,7 @@ fn main() -> Result<(),MainError> {
         Mode::Start => {
             let door_path = cli.door.unwrap_or(path::Path::new("/var/run/portunusd.door").to_path_buf());
 
-            let needs_to_be_started = match door::Client::new(door_path.clone()) {
+            let needs_to_be_started = match doors::Client::new(door_path.clone()) {
                 Ok(portunusd_client) => !portunusd_client.call(vec![], &vec![]).is_ok(),
                 Err(_) => true
             };
@@ -102,7 +101,7 @@ fn main() -> Result<(),MainError> {
         Mode::Stop => {
             let door_path = cli.door.unwrap_or(path::Path::new("/var/run/portunusd.door").to_path_buf());
 
-            match door::Client::new(door_path.clone()) {
+            match doors::Client::new(door_path.clone()) {
                 Ok(portunusd_client) => {
                     portunusd_client.call(vec![], &vec![69])?;
                 },

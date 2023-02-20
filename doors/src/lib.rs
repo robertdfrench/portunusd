@@ -47,8 +47,9 @@
 //!
 //! [1]: https://github.com/robertdfrench/revolving-door
 
+pub mod illumos;
 
-use crate::illumos::door_h::{
+use illumos::door_h::{
     door_call,
     door_create,
     door_arg_t,
@@ -59,8 +60,8 @@ use crate::illumos::door_h::{
     door_desc_t__d_data__d_desc,
     door_return,
 };
-use crate::illumos::stropts_h::{ fattach, fdetach };
-use crate::illumos::errno;
+use illumos::stropts_h::{ fattach, fdetach };
+use illumos::errno;
 use libc;
 use std::ffi;
 use std::fmt;
@@ -390,7 +391,7 @@ pub trait ServerProcedure {
 #[macro_export]
 macro_rules! derive_server_procedure {
     ($function_name:ident as $type_name:ident) => {
-        use portunusd::door::ServerProcedure;
+        use doors::ServerProcedure;
         struct $type_name;
         impl ServerProcedure for $type_name {
             fn rust_wrapper(in_descriptors: Vec<std::os::fd::RawFd>, request: &[u8]) -> (Vec<std::os::fd::RawFd>, Vec<u8>) {

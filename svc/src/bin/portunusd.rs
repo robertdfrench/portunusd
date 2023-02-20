@@ -8,7 +8,6 @@
 //! Portunus Daemon
 
 // Types
-use portunusd::door;
 use std::any;
 use std::io;
 use std::sync::mpsc;
@@ -18,7 +17,7 @@ use std::thread;
 use std::os::fd;
 
 // Macros
-use portunusd::derive_server_procedure;
+use doors::derive_server_procedure;
 use errors::define_error_enum;
 
 // Traits
@@ -36,7 +35,7 @@ struct Cli {
 define_error_enum!(
     pub enum MainError {
         Io(io::Error),
-        Door(portunusd::door::Error),
+        Door(doors::Error),
         Send(mpsc::SendError<net::TcpStream>),
         Join(Box<dyn any::Any + Send>)
     }
@@ -46,7 +45,7 @@ define_error_enum!(
     pub enum AttendError {
         Io(io::Error),
         Recv(mpsc::RecvError),
-        Door(portunusd::door::Error)
+        Door(doors::Error)
     }
 );
 
@@ -56,7 +55,7 @@ struct DoorAttendant {
 }
 
 impl DoorAttendant {
-    fn new(doorc: door::ClientRef) -> Self {
+    fn new(doorc: doors::ClientRef) -> Self {
         let (sender, mut receiver) = mpsc::channel();
         let join_handle = thread::spawn(move|| {
             loop {
@@ -70,7 +69,7 @@ impl DoorAttendant {
         Self{ sender, join_handle }
     }
 
-    fn attend(receiver: &mut mpsc::Receiver<net::TcpStream>, doorc: door::ClientRef) -> Result<(), AttendError> {
+    fn attend(receiver: &mut mpsc::Receiver<net::TcpStream>, doorc: doors::ClientRef) -> Result<(), AttendError> {
         let client = receiver.recv()?;
         doorc.call(vec![client.into_raw_fd()], &vec![])?;
         Ok(())
