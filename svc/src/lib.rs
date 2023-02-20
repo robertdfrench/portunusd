@@ -18,5 +18,4 @@
 pub mod config;
 pub mod counter;
 pub mod door;
-pub mod errors;
 pub mod illumos;

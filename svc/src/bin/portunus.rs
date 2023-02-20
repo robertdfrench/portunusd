@@ -14,7 +14,7 @@ use std::path;
 use std::process;
 
 // Macros
-use portunusd::define_error_enum;
+use errors::define_error_enum;
 
 // Traits
 use clap::Parser;

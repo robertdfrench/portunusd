@@ -25,7 +25,7 @@
 /// ```
 /// use std::fs::File;
 /// use std::io::Write;
-/// use portunusd::map_error;
+/// use errors::map_error;
 ///
 /// pub enum CrabToFileError {
 ///     Io(std::io::Error),
@@ -63,7 +63,7 @@ macro_rules! map_error {
 /// ```
 /// use std::fs::File;
 /// use std::io::Write;
-/// use portunusd::define_error_enum;
+/// use errors::define_error_enum;
 ///
 /// define_error_enum!(
 ///     pub enum CrabToFileError {
@@ -86,7 +86,7 @@ macro_rules! define_error_enum {
             $label_0($source_0),
             $($label_n($source_n),)*
         }
-        portunusd::map_error!($source_0 => $dest as $label_0);
-        $(portunusd::map_error!($source_n => $dest as $label_n);)*
+        errors::map_error!($source_0 => $dest as $label_0);
+        $(errors::map_error!($source_n => $dest as $label_n);)*
     }
 }

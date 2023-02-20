@@ -19,7 +19,7 @@ use std::os::fd;
 
 // Macros
 use portunusd::derive_server_procedure;
-use portunusd::define_error_enum;
+use errors::define_error_enum;
 
 // Traits
 use clap::Parser;

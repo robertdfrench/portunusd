@@ -1,14 +1,6 @@
-[package]
-name = "portunusd"
-version = "0.3.0"
-authors = ["Robert D. French <robert@robertdfrench.me>"]
-edition = "2021"
-description = "Avant-garde Network Application Server for illumos"
-repository = "https://github.com/robertdfrench/portunusd"
-license = "MPL-2.0"
-keywords = ["illumos", "door", "port"]
-publish = true
+[workspace]
 
-[dependencies]
-clap = { version = "4.1.4", features = ["derive"] }
-libc = "0.2.96"
+members = [
+	"errors",
+	"svc",
+]
