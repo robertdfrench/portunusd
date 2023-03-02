@@ -14,8 +14,7 @@
 //! Below is an example of an application that accepts a user's name in the request body and
 //! returns a polite greeting:
 //! ```
-//! use portunusd::derive_server_procedure;
-//! use portunusd::door;
+//! use doors::derive_server_procedure;
 //! use std::fmt::format;
 //! use std::str::from_utf8;
 //! use std::os::fd::RawFd;
@@ -39,8 +38,8 @@
 //! let hello_server = Hello::install("portunusd_test.04683b").unwrap();
 //!
 //! // Now a client (even one in another process!) can call this procedure:
-//! let hello_client = door::Client::new("portunusd_test.04683b").unwrap();
-//! let greeting = hello_client.call(vec![], b"Portunus").unwrap();
+//! let hello_client = doors::Client::new("portunusd_test.04683b").unwrap();
+//! let _descriptors, greeting = hello_client.call(vec![], b"Portunus").unwrap();
 //!
 //! assert_eq!(greeting, b"Hello, Portunus!");
 //! ```
@@ -97,7 +96,7 @@ impl ClientRef {
     ///
     /// This is intended to be called from a dedicated thread. It will block until the server
     /// procedure calls `door_return`. 
-    pub fn call(&self, raw_descriptors: Vec<fd::RawFd>, request: &[u8]) -> Result<Vec<u8>,Error> {
+    pub fn call(&self, raw_descriptors: Vec<fd::RawFd>, request: &[u8]) -> Result<(Vec<fd::RawFd>,Vec<u8>),Error> {
         let mut response = Vec::with_capacity(1024);
         // the vector has length zero, so rsize is zero, so the overflow handling gets triggered
         // which fucks up alignment so data_ptr > rbuf
@@ -122,7 +121,7 @@ impl ClientRef {
         unsafe{ response.set_len(arg.data_size); }
 
         let slice = unsafe{ std::slice::from_raw_parts(arg.data_ptr as *const u8, arg.data_size) };
-        Ok(slice.to_vec())
+        Ok((vec![],slice.to_vec()))
     }
 }
 
@@ -155,7 +154,7 @@ impl Client {
     /// Forwad a slice of bytes through a door to a PortunusD application. If successful, the
     /// resulting `Vec<u8>` will contain the bytes returned from the application's server
     /// procedure.
-    pub fn call(&self, descriptors: Vec<fd::RawFd>, request: &[u8]) -> Result<Vec<u8>,Error> {
+    pub fn call(&self, descriptors: Vec<fd::RawFd>, request: &[u8]) -> Result<(Vec<fd::RawFd>,Vec<u8>),Error> {
         let cr = self.borrow();
         cr.call(descriptors, request)
     }
@@ -360,7 +359,7 @@ pub trait ServerProcedure {
 ///
 /// # Example
 /// ```
-/// use portunusd::derive_server_procedure;
+/// use doors::derive_server_procedure;
 /// use std::fmt::format;
 /// use std::str::from_utf8;
 /// use std::os::fd::RawFd;

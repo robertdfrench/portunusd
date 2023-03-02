@@ -15,5 +15,6 @@
 //! throwing away all the luxuries of the operating system.
 
 
+pub mod attendant;
 pub mod config;
 pub mod counter;

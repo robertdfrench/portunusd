@@ -66,7 +66,7 @@ fn main() -> Result<(),MainError> {
 
             match doors::Client::new(door_path) {
                 Ok(portunusd_client) => {
-                    let content = portunusd_client.call(vec![], &vec![])?;
+                    let (_descriptors, content) = portunusd_client.call(vec![], &vec![])?;
                     let response = String::from_utf8(content)?;
                     println!("portunusd is up: {}", response);
                 },
