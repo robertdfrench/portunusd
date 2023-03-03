@@ -22,6 +22,7 @@ use errors::define_error_enum;
 
 // Traits
 use clap::Parser;
+use doors::ServerProcedure;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -40,7 +41,7 @@ define_error_enum!(
     }
 );
 
-fn hello(_descriptors: Vec<fd::RawFd>, request: &[u8]) -> (Vec<fd::RawFd>, Vec<u8>) {
+fn hello(_descriptors: &[fd::RawFd], request: &[u8]) -> (Vec<fd::RawFd>, Vec<u8>) {
     static COUNTER: AtomicUsize = AtomicUsize::new(65);
     if request.len() == 1 {
         if request[0] == 69 {

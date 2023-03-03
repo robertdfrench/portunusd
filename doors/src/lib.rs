@@ -121,7 +121,8 @@ impl ClientRef {
         unsafe{ response.set_len(arg.data_size); }
 
         let slice = unsafe{ std::slice::from_raw_parts(arg.data_ptr as *const u8, arg.data_size) };
-        Ok((vec![],slice.to_vec()))
+        let dslice = unsafe{ std::slice::from_raw_parts(arg.desc_ptr as *const fd::RawFd, arg.desc_num as usize) };
+        Ok((dslice.to_vec(),slice.to_vec()))
     }
 }
 
@@ -182,6 +183,17 @@ pub struct Server {
     door_descriptor: libc::c_int
 }
 
+impl IntoRawFd for Server {
+    fn into_raw_fd(self) -> fd::RawFd {
+        self.door_descriptor.as_raw_fd()
+    }
+}
+
+impl FromRawFd for Client {
+    unsafe fn from_raw_fd(raw: fd::RawFd) -> Self {
+        Self{ door_descriptor: raw }
+    }
+}
 
 /// Door problems.
 ///
@@ -283,7 +295,7 @@ pub trait ServerProcedure {
     /// This is the part you define.  The function body you give in `define_server_procedure!` will
     /// end up as the definition of this `rust` function, which will be called by the associated
     /// `c_wrapper` function in this trait.
-    fn rust_wrapper(descriptors: Vec<fd::RawFd>, request: &[u8]) -> (Vec<fd::RawFd>, Vec<u8>);
+    fn rust_wrapper(descriptors: &[fd::RawFd], request: &[u8]) -> (Vec<fd::RawFd>, Vec<u8>);
 
     /// This is a wrapper that fits the Doors API All it does is pack and unpack data so that our
     /// server procedure doesn't have to deal with the doors api directly. Its unusual signature
@@ -303,7 +315,7 @@ pub trait ServerProcedure {
             dd.as_raw_fd()
         }).collect();
 
-        let (out_raw_descriptors, response) = Self::rust_wrapper(in_raw_descriptors, request);
+        let (out_raw_descriptors, response) = Self::rust_wrapper(&in_raw_descriptors, request);
 
         let out_door_descriptors: Vec<door_desc_t> = out_raw_descriptors.into_iter().map(|raw| {
             unsafe{ door_desc_t::from_raw_fd(raw) }
@@ -365,7 +377,7 @@ pub trait ServerProcedure {
 /// use std::os::fd::RawFd;
 ///
 /// // Consider this function, which returns a polite greeting to a client:
-/// fn hello(_: Vec<RawFd>, request: &[u8]) -> (Vec<RawFd>, Vec<u8>) {
+/// fn hello(_: &[RawFd], request: &[u8]) -> (Vec<RawFd>, Vec<u8>) {
 ///     match from_utf8(request) {
 ///         Err(_) => (vec![], b"Your name is not valid utf8".to_vec()),
 ///         Ok(name) => {
@@ -390,10 +402,9 @@ pub trait ServerProcedure {
 #[macro_export]
 macro_rules! derive_server_procedure {
     ($function_name:ident as $type_name:ident) => {
-        use doors::ServerProcedure;
         struct $type_name;
-        impl ServerProcedure for $type_name {
-            fn rust_wrapper(in_descriptors: Vec<std::os::fd::RawFd>, request: &[u8]) -> (Vec<std::os::fd::RawFd>, Vec<u8>) {
+        impl doors::ServerProcedure for $type_name {
+            fn rust_wrapper(in_descriptors: &[std::os::fd::RawFd], request: &[u8]) -> (Vec<std::os::fd::RawFd>, Vec<u8>) {
                 $function_name(in_descriptors, request)
             }
         }
