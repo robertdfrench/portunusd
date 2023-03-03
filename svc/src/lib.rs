@@ -18,3 +18,4 @@
 pub mod attendant;
 pub mod config;
 pub mod counter;
+pub mod doors;

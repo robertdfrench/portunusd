@@ -11,6 +11,5 @@ publish = true
 
 [dependencies]
 clap = { version = "4.1.4", features = ["derive"] }
-doors = { path = "../doors" }
 errors = { path = "../errors" }
 libc = "0.2.96"

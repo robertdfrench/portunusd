@@ -6,6 +6,8 @@
  * Copyright 2021 Robert D. French
  */
 //! Portunus Daemon
+//!
+use portunusd::doors;
 
 // Types
 use std::any;
@@ -17,7 +19,7 @@ use std::os::fd;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 // Macros
-use doors::derive_server_procedure;
+use portunusd::derive_server_procedure;
 use errors::define_error_enum;
 
 // Traits
