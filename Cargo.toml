@@ -2,6 +2,7 @@
 
 members = [
 	"errors",
+	"doors",
 	"illumos",
 	"portunusd",
 ]

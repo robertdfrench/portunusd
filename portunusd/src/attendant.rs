@@ -19,8 +19,6 @@ use errors::define_error_enum;
 // Traits
 use std::os::fd::IntoRawFd;
 
-use crate::doors;
-
 define_error_enum!(
     pub enum AttendError {
         Io(io::Error),

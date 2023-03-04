@@ -2,9 +2,8 @@ use std::fs;
 use std::io;
 use std::path;
 use std::os::fd::RawFd;
-use portunusd::doors;
 use doors::Server;
-use portunusd::derive_server_procedure;
+use doors::derive_server_procedure;
 use errors::define_error_enum;
 
 // Traits

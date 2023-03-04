@@ -7,8 +7,6 @@
  */
 //! Portunus Controller
 
-use portunusd::doors;
-
 // Types
 use std::io;
 use std::path;
