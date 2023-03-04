@@ -59,7 +59,7 @@ use libc;
 use std::ffi;
 use std::fmt;
 use std::fs::File;
-use std::os::fd;
+use std::os::fd::RawFd;
 use std::os::fd::AsRawFd;
 use std::os::fd::FromRawFd;
 use std::os::unix::io::IntoRawFd;
@@ -90,12 +90,12 @@ impl ClientRef {
     ///
     /// This is intended to be called from a dedicated thread. It will block until the server
     /// procedure calls `door_return`. 
-    pub fn call(&self, raw_descriptors: Vec<fd::RawFd>, request: &[u8]) -> Result<(Vec<fd::RawFd>,Vec<u8>),Error> {
+    pub fn call(&self, raw_fds: Vec<RawFd>, request: &[u8]) -> Result<(Vec<RawFd>,Vec<u8>),Error> {
         let mut response = Vec::with_capacity(1024);
         // the vector has length zero, so rsize is zero, so the overflow handling gets triggered
         // which fucks up alignment so data_ptr > rbuf
 
-        let mut door_descriptors: Vec<door_desc_t> = raw_descriptors.into_iter().map(|raw| {
+        let mut door_descriptors: Vec<door_desc_t> = raw_fds.into_iter().map(|raw| {
             unsafe { door_desc_t::from_raw_fd(raw) }
         }).collect();
 
@@ -115,7 +115,9 @@ impl ClientRef {
         unsafe{ response.set_len(arg.data_size); }
 
         let slice = unsafe{ std::slice::from_raw_parts(arg.data_ptr as *const u8, arg.data_size) };
-        let dslice = unsafe{ std::slice::from_raw_parts(arg.desc_ptr as *const fd::RawFd, arg.desc_num as usize) };
+        let dslice = unsafe{
+            std::slice::from_raw_parts(arg.desc_ptr as *const RawFd, arg.desc_num as usize)
+        };
         Ok((dslice.to_vec(),slice.to_vec()))
     }
 }
@@ -149,9 +151,9 @@ impl Client {
     /// Forwad a slice of bytes through a door to a PortunusD application. If successful, the
     /// resulting `Vec<u8>` will contain the bytes returned from the application's server
     /// procedure.
-    pub fn call(&self, descriptors: Vec<fd::RawFd>, request: &[u8]) -> Result<(Vec<fd::RawFd>,Vec<u8>),Error> {
+    pub fn call(&self, raw_fds: Vec<RawFd>, request: &[u8]) -> Result<(Vec<RawFd>,Vec<u8>),Error> {
         let cr = self.borrow();
-        cr.call(descriptors, request)
+        cr.call(raw_fds, request)
     }
 
     /// A copy of the door descriptor that can be called from another thread
@@ -178,13 +180,13 @@ pub struct Server {
 }
 
 impl IntoRawFd for Server {
-    fn into_raw_fd(self) -> fd::RawFd {
+    fn into_raw_fd(self) -> RawFd {
         self.door_descriptor.as_raw_fd()
     }
 }
 
 impl FromRawFd for Client {
-    unsafe fn from_raw_fd(raw: fd::RawFd) -> Self {
+    unsafe fn from_raw_fd(raw: RawFd) -> Self {
         Self{ door_descriptor: raw }
     }
 }
@@ -268,7 +270,7 @@ pub trait ServerProcedure {
     /// This is the part you define.  The function body you give in `define_server_procedure!` will
     /// end up as the definition of this `rust` function, which will be called by the associated
     /// `c_wrapper` function in this trait.
-    fn rust_wrapper(descriptors: &[fd::RawFd], request: &[u8]) -> (Vec<fd::RawFd>, Vec<u8>);
+    fn rust_wrapper(descriptors: &[RawFd], request: &[u8]) -> (Vec<RawFd>, Vec<u8>);
 
     /// This is a wrapper that fits the Doors API All it does is pack and unpack data so that our
     /// server procedure doesn't have to deal with the doors api directly. Its unusual signature
@@ -283,8 +285,10 @@ pub trait ServerProcedure {
         n_desc: libc::c_uint
     ) {
         let request = unsafe{ slice::from_raw_parts(argp as *const u8, arg_size) };
-        let in_door_descriptors = unsafe{ slice::from_raw_parts::<door_desc_t>(dp, n_desc as usize) };
-        let in_raw_descriptors: Vec<fd::RawFd> = in_door_descriptors.iter().map(|dd| {
+        let in_door_descriptors = unsafe{
+            slice::from_raw_parts::<door_desc_t>(dp, n_desc as usize)
+        };
+        let in_raw_descriptors: Vec<RawFd> = in_door_descriptors.iter().map(|dd| {
             dd.as_raw_fd()
         }).collect();
 
@@ -298,7 +302,14 @@ pub trait ServerProcedure {
         let data_size = response.len();
         let desc_ptr = out_door_descriptors.as_ptr();
         let desc_size = out_door_descriptors.len();
-        unsafe{ door_return(data_ptr as *const libc::c_char, data_size, desc_ptr, desc_size as libc::c_uint); }
+        unsafe{
+            door_return(
+                data_ptr as *const libc::c_char,
+                data_size,
+                desc_ptr,
+                desc_size as libc::c_uint
+            );
+        }
     }
 
     /// Make this procedure available on the filesystem (as a door).
@@ -377,7 +388,10 @@ macro_rules! derive_server_procedure {
     ($function_name:ident as $type_name:ident) => {
         struct $type_name;
         impl doors::ServerProcedure for $type_name {
-            fn rust_wrapper(in_descriptors: &[std::os::fd::RawFd], request: &[u8]) -> (Vec<std::os::fd::RawFd>, Vec<u8>) {
+            fn rust_wrapper(
+                in_descriptors: &[std::os::fd::RawFd], 
+                request: &[u8]
+            ) -> (Vec<std::os::fd::RawFd>, Vec<u8>) {
                 $function_name(in_descriptors, request)
             }
         }
