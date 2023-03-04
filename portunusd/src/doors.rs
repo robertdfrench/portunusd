@@ -46,17 +46,11 @@
 //!
 //! [1]: https://github.com/robertdfrench/revolving-door
 
-pub mod illumos;
-
 use illumos::door_h::{
     door_call,
     door_create,
-    door_arg_t,
-    DOOR_DESCRIPTOR,
-    DOOR_RELEASE,
     door_desc_t,
-    door_desc_t__d_data,
-    door_desc_t__d_data__d_desc,
+    door_arg_t,
     door_return,
 };
 use illumos::stropts_h::{ fattach, fdetach };
@@ -260,27 +254,6 @@ impl Drop for Server {
         unsafe{ libc::unlink(self.jamb_path.as_ptr()); }
         // Stop existing clients from issuing new door_call()s
         unsafe{ libc::close(self.door_descriptor); }
-    }
-}
-
-impl AsRawFd for door_desc_t {
-    fn as_raw_fd(&self) -> fd::RawFd {
-        let d_data = &self.d_data;
-        let d_desc = unsafe{ d_data.d_desc };
-        let d_descriptor = d_desc.d_descriptor;
-        d_descriptor as fd::RawFd
-    }
-}
-
-impl FromRawFd for door_desc_t {
-    unsafe fn from_raw_fd(raw: fd::RawFd) -> Self {
-        let d_descriptor = raw as libc::c_int;
-        let d_id = 0; // TODO: Confirm "door 0" is appropriate / not wrong for passing sockets
-        let d_desc = door_desc_t__d_data__d_desc { d_descriptor, d_id };
-        let d_data = door_desc_t__d_data { d_desc };
-
-        let d_attributes = DOOR_DESCRIPTOR | DOOR_RELEASE;
-        Self { d_attributes, d_data }
     }
 }
 

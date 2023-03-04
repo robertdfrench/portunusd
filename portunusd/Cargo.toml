@@ -12,4 +12,5 @@ publish = true
 [dependencies]
 clap = { version = "4.1.4", features = ["derive"] }
 errors = { path = "../errors" }
+illumos = { path = "../illumos" }
 libc = "0.2.96"

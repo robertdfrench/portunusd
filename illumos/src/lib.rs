@@ -23,6 +23,9 @@ pub mod door_h;
 pub mod stropts_h;
 
 use libc;
+use std::os::fd;
+use std::os::fd::AsRawFd;
+use std::os::fd::FromRawFd;
 
 /// Good ole UNIX errno
 ///
@@ -36,6 +39,27 @@ use libc;
 /// [`PERROR(3C)`]: https://illumos.org/man/3c/errno
 pub fn errno() -> libc::c_int {
     unsafe{ *libc::___errno() }
+}
+
+impl AsRawFd for door_h::door_desc_t {
+    fn as_raw_fd(&self) -> fd::RawFd {
+        let d_data = &self.d_data;
+        let d_desc = unsafe{ d_data.d_desc };
+        let d_descriptor = d_desc.d_descriptor;
+        d_descriptor as fd::RawFd
+    }
+}
+
+impl FromRawFd for door_h::door_desc_t {
+    unsafe fn from_raw_fd(raw: fd::RawFd) -> Self {
+        let d_descriptor = raw as libc::c_int;
+        let d_id = 0; // TODO: Confirm "door 0" is appropriate / not wrong for passing sockets
+        let d_desc = door_h::door_desc_t__d_data__d_desc { d_descriptor, d_id };
+        let d_data = door_h::door_desc_t__d_data { d_desc };
+
+        let d_attributes = door_h::DOOR_DESCRIPTOR | door_h::DOOR_RELEASE;
+        Self { d_attributes, d_data }
+    }
 }
 
 
