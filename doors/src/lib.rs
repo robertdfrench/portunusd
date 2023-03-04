@@ -116,9 +116,13 @@ impl ClientRef {
 
         let slice = unsafe{ std::slice::from_raw_parts(arg.data_ptr as *const u8, arg.data_size) };
         let dslice = unsafe{
-            std::slice::from_raw_parts(arg.desc_ptr as *const RawFd, arg.desc_num as usize)
+            std::slice::from_raw_parts(arg.desc_ptr as *const door_desc_t, arg.desc_num as usize)
         };
-        Ok((dslice.to_vec(),slice.to_vec()))
+        let out_fds: Vec<RawFd> = dslice.iter().map(|door_desc| {
+            door_desc.as_raw_fd()
+        }).collect();
+
+        Ok((out_fds,slice.to_vec()))
     }
 }
 
@@ -176,7 +180,7 @@ impl Drop for Client {
 /// A server procedure which has been attached to the filesystem.
 pub struct Server {
     jamb_path: ffi::CString,
-    door_descriptor: libc::c_int
+    pub door_descriptor: libc::c_int
 }
 
 impl IntoRawFd for Server {

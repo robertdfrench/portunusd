@@ -1,40 +1,55 @@
+use std::env;
 use std::fs;
 use std::io;
+use std::net;
 use std::path;
+use std::os::unix::net::UnixStream;
 use std::os::fd::RawFd;
-use doors::Server;
 use doors::derive_server_procedure;
 use errors::define_error_enum;
 
 // Traits
 use clap::Parser;
 use doors::ServerProcedure;
-use std::os::fd::IntoRawFd;
-
-fn su_child(username: &str, server: Server) -> ! {
-    let uid = match username {
-        "robert" => 100,
-        "caleb" => 101,
-        _ => panic!(),
-    };
-    unsafe{ libc::setuid(uid); }
-    server.park()
-}
+use sendfd::SendWithFd;
+use sendfd::RecvWithFd;
 
 fn su(_fds: &[RawFd], username: &[u8]) -> (Vec<RawFd>, Vec<u8>) {
-    let username = String::from_utf8(username.to_vec()).unwrap();
-    let homedir = format!("/home/{}", username);
-    let homedir = path::PathBuf::from(homedir);
-    let doorpath = homedir.join("ls.door");
-    let ls_server = Ls::install(doorpath.to_str().unwrap()).unwrap();
+    let (parentsock, childsock) = match UnixStream::pair() {
+        Ok((parentsock, childsock)) => (parentsock, childsock),
+        Err(e) => {
+            eprintln!("Couldn't create a pair of sockets: {e:?}");
+            return (vec![], vec![]);
+        }
+    };
     match unsafe{ libc::fork() } {
         0 => {
             // Child
-            su_child(&username, ls_server)
+            parentsock.shutdown(net::Shutdown::Both).unwrap();
+            childsock.shutdown(net::Shutdown::Read).unwrap();
+            let username = String::from_utf8(username.to_vec()).unwrap();
+            let uid = match username.as_str() {
+                "alice" => 102,
+                "bob" => 103,
+                _ => panic!(),
+            };
+            unsafe{ libc::setuid(uid); }
+            let homedir = format!("/home/{}", username);
+            let homedir = path::PathBuf::from(homedir);
+            env::set_current_dir(&homedir).unwrap();
+            let ls_server = Ls::install("ls.door").unwrap();
+            childsock.send_with_fd(&vec![], &vec![ls_server.door_descriptor]).unwrap();
+            // TODO: This depends very much on my personal workstation
+            ls_server.park()
         },
         _child_pid => {
             // Parent
-            (vec![ls_server.into_raw_fd()], vec![])
+            childsock.shutdown(net::Shutdown::Both).unwrap();
+            parentsock.shutdown(net::Shutdown::Write).unwrap();
+            let mut data = vec![];
+            let mut fds = vec![];
+            parentsock.recv_with_fd(&mut data, &mut fds).unwrap();
+            (fds, data)
         }
     }
 }

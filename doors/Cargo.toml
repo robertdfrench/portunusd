@@ -12,3 +12,4 @@ libc = "0.2.96"
 
 [dev-dependencies]
 clap = { version = "4.1.4", features = ["derive"] }
+sendfd = "0.4.3"

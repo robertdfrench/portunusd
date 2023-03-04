@@ -143,7 +143,7 @@ pub struct door_arg_t {
 ///
 /// [1]: https://github.com/illumos/illumos-gate/blob/master/usr/src/uts/common/sys/door.h#L122
 /// [2]: https://github.com/robertdfrench/revolving-door/tree/master/A0_result_parameters
-#[repr(C)]
+#[repr(C,packed)]
 pub struct door_desc_t {
     pub d_attributes: door_attr_t,
     pub d_data: door_desc_t__d_data,
@@ -180,7 +180,7 @@ pub const DOOR_RELEASE: door_attr_t = 0x40000; // Passed references are also rel
 /// Rust does not, so we have to define each component as a separate entity.
 ///
 /// [1]: https://github.com/illumos/illumos-gate/blob/master/usr/src/uts/common/sys/door.h#L122
-#[repr(C)]
+#[repr(C,packed)]
 pub union door_desc_t__d_data {
     pub d_desc: door_desc_t__d_data__d_desc,
     d_resv: [libc::c_int; 5], /* Reserved by illumos for some undocumented reason */
