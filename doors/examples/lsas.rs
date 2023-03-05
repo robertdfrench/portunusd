@@ -28,7 +28,11 @@ fn main() -> Result<(),MainError> {
     let door_path = cli.door.unwrap_or(path::Path::new("/var/run/lsasd.door").to_path_buf());
     let door_path_str = door_path.to_str().ok_or(io::Error::new(io::ErrorKind::Other, "invalid door path"))?;
     let lsas_client = doors::Client::new(door_path_str)?;
-    let (desc, _output) = lsas_client.call(vec![], b"alice")?;
+    let (desc, output) = lsas_client.call(vec![], b"alice")?;
+    if desc.len() == 0 {
+        eprintln!("error: {:?}", output);
+        return Ok(());
+    }
     let ls_client = unsafe{ doors::Client::from_raw_fd(desc[0]) };
     let (_desc, output) = ls_client.call(vec![], &vec![])?;
     let output = String::from_utf8(output)?;

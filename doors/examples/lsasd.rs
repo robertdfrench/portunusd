@@ -11,22 +11,25 @@ use errors::define_error_enum;
 // Traits
 use clap::Parser;
 use doors::ServerProcedure;
-use sendfd::SendWithFd;
-use sendfd::RecvWithFd;
+use std::os::fd::IntoRawFd;
+use io::Read;
+use io::Write;
 
 fn su(_fds: &[RawFd], username: &[u8]) -> (Vec<RawFd>, Vec<u8>) {
-    let (parentsock, childsock) = match UnixStream::pair() {
+    let (mut parentsock, mut childsock) = match UnixStream::pair() {
         Ok((parentsock, childsock)) => (parentsock, childsock),
         Err(e) => {
             eprintln!("Couldn't create a pair of sockets: {e:?}");
             return (vec![], vec![]);
         }
     };
+    parentsock.shutdown(net::Shutdown::Write).unwrap();
+    childsock.shutdown(net::Shutdown::Read).unwrap();
     match unsafe{ libc::fork() } {
         0 => {
             // Child
-            parentsock.shutdown(net::Shutdown::Both).unwrap();
-            childsock.shutdown(net::Shutdown::Read).unwrap();
+            // let parentfd = parentsock.into_raw_fd();
+            // unsafe{ libc::close(parentfd) };
             let username = String::from_utf8(username.to_vec()).unwrap();
             let uid = match username.as_str() {
                 "alice" => 102,
@@ -37,19 +40,23 @@ fn su(_fds: &[RawFd], username: &[u8]) -> (Vec<RawFd>, Vec<u8>) {
             let homedir = format!("/home/{}", username);
             let homedir = path::PathBuf::from(homedir);
             env::set_current_dir(&homedir).unwrap();
+            println!("About to install a door in {:?}", homedir);
             let ls_server = Ls::install("ls.door").unwrap();
-            childsock.send_with_fd(&vec![], &vec![ls_server.door_descriptor]).unwrap();
+            write!(childsock, "{}", homedir.join("ls.door").display()).unwrap();
+            parentsock.shutdown(net::Shutdown::Read).unwrap();
             // TODO: This depends very much on my personal workstation
             ls_server.park()
         },
         _child_pid => {
             // Parent
-            childsock.shutdown(net::Shutdown::Both).unwrap();
-            parentsock.shutdown(net::Shutdown::Write).unwrap();
-            let mut data = vec![];
-            let mut fds = vec![];
-            parentsock.recv_with_fd(&mut data, &mut fds).unwrap();
-            (fds, data)
+            // let childfd = childsock.into_raw_fd();
+            // unsafe{ libc::close(childfd) };
+            let mut door_path = String::new();
+            parentsock.read_to_string(&mut door_path).unwrap();
+            println!("I want to open {}", door_path);
+            let _door_client = doors::Client::new(&door_path).unwrap();
+            //let fds = vec![door_client.into_raw_fd()];
+            (vec![], vec![])
         }
     }
 }
@@ -88,7 +95,7 @@ fn main() -> Result<(),MainError> {
     let door_path = cli.door.unwrap_or(path::Path::new("/var/run/lsasd.door").to_path_buf());
     println!("LsasD is booting up!");
     let door_path_str = door_path.to_str().ok_or(io::Error::new(io::ErrorKind::Other, "invalid door path"))?;
-    unsafe{ libc::daemon(0,0) };
+    // unsafe{ libc::daemon(0,0) };
     let su_server = Su::install(door_path_str)?;
     su_server.park(); // No return from here
 }

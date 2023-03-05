@@ -189,6 +189,12 @@ impl IntoRawFd for Server {
     }
 }
 
+impl IntoRawFd for Client {
+    fn into_raw_fd(self) -> RawFd {
+        self.door_descriptor as RawFd
+    }
+}
+
 impl FromRawFd for Client {
     unsafe fn from_raw_fd(raw: RawFd) -> Self {
         Self{ door_descriptor: raw }
