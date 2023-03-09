@@ -33,8 +33,10 @@ int main(int argc, char** argv) {
     door_call(first_door, &arg);
     close(first_door);
     printf("%d, %d, %d\n", arg.data_size, arg.desc_num, arg.rsize);
-    door_desc_t* w = arg.desc_ptr;
-    int second_door = w->d_data.d_desc.d_descriptor;
-    door_call(second_door, NULL);
+    if (arg.desc_num > 0) {
+        door_desc_t* w = arg.desc_ptr;
+        int second_door = w->d_data.d_desc.d_descriptor;
+        door_call(second_door, NULL);
+    }
     return 0;
 }
