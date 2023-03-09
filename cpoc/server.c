@@ -21,7 +21,7 @@ void target(
         char* argp, size_t arg_size,
         door_desc_t* dp, uint_t n_desc
     ) {
-    printf("In the target sp.\n");
+    printf("In the target sp running as uid=%d.\n", getuid());
     door_return(NULL, 0, NULL, 0);
 }
 
@@ -43,6 +43,8 @@ void proxy(
     int pid = fork();
     if (pid == child) { // Child
         //close(sock[parent]);
+        setgid(102); // alice
+        setuid(102); //alice
 
         int door_fd = door_create(target, NULL, 0);
 
@@ -75,8 +77,7 @@ void proxy(
 	if (sendmsg(sock[child], &msg, 0) == -1)
 	    err(1, "[child] sendmsg() failed");
 
-        char* data = "fuck";
-	door_return(data,5,NULL,0);
+	door_return(NULL,0,NULL,0);
     } else { // Parent
         //close(sock[child]);
 
@@ -109,7 +110,6 @@ void proxy(
         w.d_data.d_desc.d_descriptor = door_fd;
 
         door_return(data, 6, &w, 1);
-        //door_return(data, 6, NULL, 0);
     }
 }
 

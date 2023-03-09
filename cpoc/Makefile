@@ -1,13 +1,13 @@
 test: run/server.pid run/server.door build/client
 	./build/client --first-door run/server.door || true
-	kill -9 `cat run/server.pid` || true
-	rm -f run/server.*
+	sudo kill -9 `cat run/server.pid` || true
+	sudo rm -f run/server.*
 
 run/server.pid: run/server.door
 	@cat run/server.pid
 
 run/server.door: build/server run/.dir
-	./build/server --pid run/server.pid --door run/server.door
+	sudo ./build/server --pid run/server.pid --door run/server.door
 
 build/client: client.c build/.dir
 	gcc -o build/client -lsocket -lnsl client.c
@@ -24,4 +24,4 @@ run/.dir:
 	touch run/.dir
 
 clean:
-	rm -rf build/ run/
+	sudo rm -rf build/ run/
