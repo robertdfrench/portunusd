@@ -1,6 +1,7 @@
 #include <door.h>
 #include <err.h>
 #include <fcntl.h>
+#include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,9 +22,14 @@ void target(
         char* argp, size_t arg_size,
         door_desc_t* dp, uint_t n_desc
     ) {
+    FILE* f = fopen("README.md","r");
+    char buffer[1024];
+    fread(buffer, 1, 1024, f);
     printf("In the target sp running as uid=%d.\n", getuid());
-    door_return(NULL, 0, NULL, 0);
+    door_return(buffer, strlen(buffer) + 1, NULL, 0);
 }
+
+static int door_cache[256];
 
 void proxy(
         void* cookie,
@@ -32,6 +38,21 @@ void proxy(
     ) {
     printf("In the proxy sp.\n");
     char* data = "Hello";
+
+    char* username = argp;
+    struct passwd user;
+    char userbuf[1024];
+    getpwnam_r(username, &user, userbuf, 1024);
+    
+    if (door_cache[user.pw_uid] != 0) {
+        printf("Reusing entry from cache\n");
+
+        door_desc_t w;
+        w.d_attributes = DOOR_DESCRIPTOR;
+        w.d_data.d_desc.d_descriptor = door_cache[user.pw_uid];
+
+        door_return(NULL, 0, &w, 1);
+    }
 
     int sock[2];
     const int child = 0;
@@ -43,8 +64,9 @@ void proxy(
     int pid = fork();
     if (pid == child) { // Child
         //close(sock[parent]);
-        setgid(102); // alice
-        setuid(102); //alice
+        setgid(user.pw_uid);
+        setuid(user.pw_gid);
+        chdir(user.pw_dir);
 
         int door_fd = door_create(target, NULL, 0);
 
@@ -109,6 +131,7 @@ void proxy(
         w.d_attributes = DOOR_DESCRIPTOR;
         w.d_data.d_desc.d_descriptor = door_fd;
 
+        door_cache[user.pw_uid] = door_fd;
         door_return(data, 6, &w, 1);
     }
 }

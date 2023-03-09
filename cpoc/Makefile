@@ -1,7 +1,22 @@
-test: run/server.pid run/server.door build/client
-	./build/client --first-door run/server.door || true
+test: run/server.pid run/server.door build/client /home/alice/README.md /home/bob/README.md
+	./build/client --first-door run/server.door --username alice
+	./build/client --first-door run/server.door --username alice
+	./build/client --first-door run/server.door --username bob
+	./build/client --first-door run/server.door --username bob
 	sudo kill -9 `cat run/server.pid` || true
 	sudo rm -f run/server.*
+
+/home/alice/README.md: alice.md /home/alice/.profile
+	sudo install -o alice -m 644 alice.md /home/alice/README.md
+
+/home/bob/README.md: bob.md /home/bob/.profile
+	sudo install -o bob -m 644 bob.md /home/bob/README.md
+
+/home/alice/.profile:
+	sudo useradd -m alice
+
+/home/bob/.profile:
+	sudo useradd -m bob
 
 run/server.pid: run/server.door
 	@cat run/server.pid
