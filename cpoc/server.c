@@ -6,76 +6,20 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stropts.h>
-
-#define _XPG4_2
-#include <sys/socket.h>
-#undef  _XPG4_2
-
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/uio.h>
 #include <sys/un.h>
 #include <unistd.h>
 
-int sock_recv_fd(int sender) {
-    char buffer[80];
-    int payload;
-
-    struct iovec iov[1];
-    memset(iov, 0, sizeof(iov));
-    iov[0].iov_base = buffer;
-    iov[0].iov_len = sizeof(buffer);
-
-    char cmsg_buf[CMSG_SPACE(sizeof(payload))];
-
-    struct msghdr msg;
-    msg.msg_name = NULL;
-    msg.msg_namelen = 0;
-    msg.msg_iov = iov;
-    msg.msg_iovlen = 1;
-    msg.msg_control = cmsg_buf;
-    msg.msg_controllen = sizeof(cmsg_buf);
-    msg.msg_flags = 0;
-    if (recvmsg(sender, &msg, 0) == -1) {
-        return -1;
-    }
-
-    struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
-    unsigned char *cmsg_data = CMSG_DATA(cmsg);
-    payload = *(int *)cmsg_data;
-
-    return payload;
+int stream_recv_fd(int sender) {
+    struct strrecvfd data;
+    ioctl(sender, I_RECVFD, &data);
+    return data.fd;
 }
 
-int sock_send_fd(int receiver, int payload) {
-    char buffer[80];
-
-    struct iovec iov[1];
-    memset(iov, 0, sizeof(iov));
-    iov[0].iov_base = buffer;
-    iov[0].iov_len = sizeof(buffer);
-
-    struct msghdr msg;
-    msg.msg_name = NULL;
-    msg.msg_namelen = 0;
-    msg.msg_iov = iov;
-    msg.msg_iovlen = 1;
-    msg.msg_flags = 0;
-
-    char cmsg_buf[CMSG_SPACE(sizeof(payload))];
-    msg.msg_control = cmsg_buf;
-    msg.msg_controllen = sizeof(cmsg_buf);
-
-    struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
-    cmsg->cmsg_len = CMSG_LEN(sizeof(payload));
-    cmsg->cmsg_level = SOL_SOCKET;
-    cmsg->cmsg_type = SCM_RIGHTS;
-
-    unsigned char *cmsg_data = CMSG_DATA(cmsg);
-    *(int *)cmsg_data = payload;
-
-    msg.msg_controllen = cmsg->cmsg_len;
-    return sendmsg(receiver, &msg, 0);
+int stream_send_fd(int receiver, int payload) {
+    return ioctl(receiver, I_SENDFD, payload);
 }
 
 static int door_cache[256];
@@ -115,31 +59,31 @@ void proxy(
         door_return(NULL, 0, &w, 1);
     }
 
-    int sock[2];
+    int stream[2];
     const int child = 0;
     const int parent = 1;
-    socketpair( AF_UNIX, SOCK_STREAM, 0, sock);
+    pipe(stream);
     
 
     int pid = fork();
     if (pid == child) { // Child
-        //close(sock[parent]);
+        close(stream[parent]);
         setgid(user.pw_uid);
         setuid(user.pw_gid);
         chdir(user.pw_dir);
 
         int door_fd = door_create(target, NULL, 0);
 
-	if (sock_send_fd(sock[child], door_fd) == -1)
-	    err(1, "[child] sock_send_fd() failed");
+	if (stream_send_fd(stream[child], door_fd) == -1)
+	    err(1, "[child] stream_send_fd() failed");
 
 	door_return(NULL,0,NULL,0);
     } else { // Parent
-        //close(sock[child]);
+        close(stream[child]);
 
-        int door_fd = sock_recv_fd(sock[parent]);
+        int door_fd = stream_recv_fd(stream[parent]);
         if (door_fd == -1) {
-            err(1, "[parent] sock_recv_fd() failed");
+            err(1, "[parent] stream_recv_fd() failed");
         }
 
         door_desc_t w;
