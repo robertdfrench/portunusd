@@ -38,6 +38,13 @@ extern "C" {
     pub fn fdetach(path: *const libc::c_char) -> libc::c_int;
 }
 
+#[repr(C)]
+pub struct strrecvfd {
+    fd: libc::c_int,
+    uid: libc::uid_t,
+    gid: libc::gid_t,
+    fill: [libc::c_char; 8]
+}
 
 #[cfg(test)]
 mod tests {
