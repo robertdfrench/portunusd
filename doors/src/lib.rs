@@ -14,13 +14,14 @@
 //! Below is an example of an application that accepts a user's name in the request body and
 //! returns a polite greeting:
 //! ```
+//! use doors::ServerProcedure;
 //! use doors::derive_server_procedure;
 //! use std::fmt::format;
 //! use std::str::from_utf8;
 //! use std::os::fd::RawFd;
 //!
 //! // Consider the function `hello`, which returns a polite greeting to a client:
-//! fn hello(_: Vec<RawFd>, request: &[u8]) -> (Vec<RawFd>, Vec<u8>) {
+//! fn hello(_: &[RawFd], request: &[u8]) -> (Vec<RawFd>, Vec<u8>) {
 //!     match from_utf8(request) {
 //!         Err(_) => (vec![], b"I couldn't understand your name!".to_vec()),
 //!         Ok(name) => {
@@ -39,7 +40,7 @@
 //!
 //! // Now a client (even one in another process!) can call this procedure:
 //! let hello_client = doors::Client::new("portunusd_test.04683b").unwrap();
-//! let _descriptors, greeting = hello_client.call(vec![], b"Portunus").unwrap();
+//! let (_descriptors, greeting) = hello_client.call(vec![], b"Portunus").unwrap();
 //!
 //! assert_eq!(greeting, b"Hello, Portunus!");
 //! ```
@@ -365,6 +366,7 @@ pub trait ServerProcedure {
 ///
 /// # Example
 /// ```
+/// use doors::ServerProcedure;
 /// use doors::derive_server_procedure;
 /// use std::fmt::format;
 /// use std::str::from_utf8;
@@ -414,7 +416,7 @@ mod tests {
 
     #[test]
     fn raw_fd_to_door_desc_and_back() {
-        let raw: fd::RawFd = 6;
+        let raw: RawFd = 6;
         let dd = unsafe{ door_desc_t::from_raw_fd(raw) };
         assert_eq!(dd.as_raw_fd(), raw);
     }

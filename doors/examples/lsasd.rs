@@ -11,7 +11,6 @@ use errors::define_error_enum;
 // Traits
 use clap::Parser;
 use doors::ServerProcedure;
-use std::os::fd::IntoRawFd;
 use io::Read;
 use io::Write;
 
