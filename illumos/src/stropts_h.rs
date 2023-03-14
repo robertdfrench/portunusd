@@ -40,9 +40,9 @@ extern "C" {
 
 #[repr(C)]
 pub struct strrecvfd {
-    fd: libc::c_int,
-    uid: libc::uid_t,
-    gid: libc::gid_t,
+    pub fd: libc::c_int,
+    pub uid: libc::uid_t,
+    pub gid: libc::gid_t,
     fill: [libc::c_char; 8]
 }
 
