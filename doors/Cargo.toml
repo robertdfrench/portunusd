@@ -7,9 +7,9 @@ edition = "2021"
 
 [dependencies]
 errors = { path = "../errors" }
+connected_fork = { path = "../connected_fork" }
 illumos = { path = "../illumos" }
 libc = "0.2.96"
 
 [dev-dependencies]
 clap = { version = "4.1.4", features = ["derive"] }
-sendfd = "0.4.3"

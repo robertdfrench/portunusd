@@ -36,7 +36,7 @@ fn main() -> Result<(),MainError> {
     let ls_client = unsafe{ doors::Client::from_raw_fd(desc[0]) };
     let (_desc, output) = ls_client.call(vec![], &vec![])?;
     let output = String::from_utf8(output)?;
-    println!("Contents of /home/caleb: {}", output);
+    println!("Contents of /home/alice: {}", output);
 
     Ok(())
 }

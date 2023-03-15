@@ -1,62 +1,51 @@
 use std::env;
 use std::fs;
 use std::io;
-use std::net;
 use std::path;
-use std::os::unix::net::UnixStream;
 use std::os::fd::RawFd;
+use connected_fork::ConnectedFork;
 use doors::derive_server_procedure;
 use errors::define_error_enum;
 
 // Traits
 use clap::Parser;
 use doors::ServerProcedure;
-use io::Read;
-use io::Write;
+use std::os::fd::AsRawFd;
+
+static mut USER_DOORS: &'static mut [RawFd] = &mut [-1; 1024];
 
 fn su(_fds: &[RawFd], username: &[u8]) -> (Vec<RawFd>, Vec<u8>) {
-    let (mut parentsock, mut childsock) = match UnixStream::pair() {
-        Ok((parentsock, childsock)) => (parentsock, childsock),
-        Err(e) => {
-            eprintln!("Couldn't create a pair of sockets: {e:?}");
-            return (vec![], vec![]);
-        }
+    let username = String::from_utf8(username.to_vec()).unwrap();
+    let uid = match username.as_str() {
+        "alice" => 102,
+        "bob" => 103,
+        _ => panic!(),
     };
-    parentsock.shutdown(net::Shutdown::Write).unwrap();
-    childsock.shutdown(net::Shutdown::Read).unwrap();
-    match unsafe{ libc::fork() } {
-        0 => {
-            // Child
-            // let parentfd = parentsock.into_raw_fd();
-            // unsafe{ libc::close(parentfd) };
-            let username = String::from_utf8(username.to_vec()).unwrap();
-            let uid = match username.as_str() {
-                "alice" => 102,
-                "bob" => 103,
-                _ => panic!(),
-            };
-            unsafe{ libc::setuid(uid); }
-            let homedir = format!("/home/{}", username);
-            let homedir = path::PathBuf::from(homedir);
-            env::set_current_dir(&homedir).unwrap();
-            println!("About to install a door in {:?}", homedir);
-            let ls_server = Ls::install("ls.door").unwrap();
-            write!(childsock, "{}", homedir.join("ls.door").display()).unwrap();
-            parentsock.shutdown(net::Shutdown::Read).unwrap();
-            // TODO: This depends very much on my personal workstation
-            ls_server.park()
-        },
-        _child_pid => {
-            // Parent
-            // let childfd = childsock.into_raw_fd();
-            // unsafe{ libc::close(childfd) };
-            let mut door_path = String::new();
-            parentsock.read_to_string(&mut door_path).unwrap();
-            println!("I want to open {}", door_path);
-            let _door_client = doors::Client::new(&door_path).unwrap();
-            //let fds = vec![door_client.into_raw_fd()];
-            (vec![], vec![])
+    if unsafe{ USER_DOORS[uid] } == -1 {
+        match ConnectedFork::with_creds(uid as libc::uid_t, uid as libc::uid_t).unwrap() {
+            ConnectedFork::Child(mut parent) => {
+                // Child
+                let homedir = format!("/home/{}", username);
+                let homedir = path::PathBuf::from(homedir);
+                env::set_current_dir(&homedir).unwrap();
+                println!("About to install a door in {:?}", homedir);
+                let ls_server = Ls::install("ls.door").unwrap();
+                parent.send_fd(ls_server.door_descriptor.as_raw_fd()).unwrap();
+                ls_server.park()
+            },
+            ConnectedFork::Parent(_pid, mut child) => {
+                // Parent
+                let creds = child.recv_fd().unwrap();
+                let fd = creds.as_raw_fd();
+                unsafe{ USER_DOORS[uid] = fd };
+                let fd2 = unsafe{ libc::dup(fd) };
+                (vec![fd2], vec![])
+            }
         }
+    } else {
+        let fd = unsafe{ USER_DOORS[uid] };
+        let fd2 = unsafe{ libc::dup(fd) };
+        (vec![fd2], vec![])
     }
 }
 derive_server_procedure!(su as Su);
@@ -94,7 +83,7 @@ fn main() -> Result<(),MainError> {
     let door_path = cli.door.unwrap_or(path::Path::new("/var/run/lsasd.door").to_path_buf());
     println!("LsasD is booting up!");
     let door_path_str = door_path.to_str().ok_or(io::Error::new(io::ErrorKind::Other, "invalid door path"))?;
-    // unsafe{ libc::daemon(0,0) };
+    unsafe{ libc::daemon(1,1) };
     let su_server = Su::install(door_path_str)?;
     su_server.park(); // No return from here
 }
