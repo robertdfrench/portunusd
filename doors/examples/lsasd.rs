@@ -1,8 +1,10 @@
+use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::io;
 use std::path;
 use std::os::fd::RawFd;
+use std::sync;
 use connected_fork::ConnectedFork;
 use doors::derive_server_procedure;
 use errors::define_error_enum;
@@ -12,17 +14,32 @@ use clap::Parser;
 use doors::ServerProcedure;
 use std::os::fd::AsRawFd;
 
-static mut USER_DOORS: &'static mut [RawFd] = &mut [-1; 1024];
+static mut DOOR_MAP: sync::RwLock<Option<HashMap<libc::uid_t,RawFd>>> = sync::RwLock::new(None);
+static DOOR_LOCK: sync::Once = sync::Once::new();
+
 
 fn su(_fds: &[RawFd], username: &[u8]) -> (Vec<RawFd>, Vec<u8>) {
+    DOOR_LOCK.call_once(|| {
+        let h = HashMap::new();
+        unsafe{ DOOR_MAP = sync::RwLock::new(Some(h)) }
+    });
     let username = String::from_utf8(username.to_vec()).unwrap();
     let uid = match username.as_str() {
         "alice" => 102,
         "bob" => 103,
         _ => panic!(),
     };
-    if unsafe{ USER_DOORS[uid] } == -1 {
-        match ConnectedFork::with_creds(uid as libc::uid_t, uid as libc::uid_t).unwrap() {
+    match unsafe{
+        let maybe_map = DOOR_MAP.read().unwrap();
+        let map = maybe_map.as_ref().unwrap();
+        let x = map.get(&uid);
+        if x.is_none() {
+            None
+        } else {
+            Some(x.unwrap().clone())
+        }
+    } {
+        None => match ConnectedFork::with_creds(uid as libc::uid_t, uid as libc::uid_t).unwrap() {
             ConnectedFork::Child(mut parent) => {
                 // Child
                 let homedir = format!("/home/{}", username);
@@ -37,15 +54,18 @@ fn su(_fds: &[RawFd], username: &[u8]) -> (Vec<RawFd>, Vec<u8>) {
                 // Parent
                 let creds = child.recv_fd().unwrap();
                 let fd = creds.as_raw_fd();
-                unsafe{ USER_DOORS[uid] = fd };
+                unsafe{
+                    let mut map = DOOR_MAP.write().unwrap();
+                    map.as_mut().expect("DMI").insert(uid, fd);
+                };
                 let fd2 = unsafe{ libc::dup(fd) };
                 (vec![fd2], vec![])
             }
+        },
+        Some(door_fd) => {
+            let fd2 = unsafe{ libc::dup(door_fd) };
+            (vec![fd2], vec![])
         }
-    } else {
-        let fd = unsafe{ USER_DOORS[uid] };
-        let fd2 = unsafe{ libc::dup(fd) };
-        (vec![fd2], vec![])
     }
 }
 derive_server_procedure!(su as Su);
