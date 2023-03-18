@@ -25,7 +25,6 @@ pub mod stropts_h;
 use libc;
 use std::os::fd;
 use std::os::fd::AsRawFd;
-use std::os::fd::FromRawFd;
 
 /// Good ole UNIX errno
 ///
@@ -50,15 +49,22 @@ impl AsRawFd for door_h::door_desc_t {
     }
 }
 
-impl FromRawFd for door_h::door_desc_t {
-    unsafe fn from_raw_fd(raw: fd::RawFd) -> Self {
+impl door_h::door_desc_t {
+    pub fn new(raw: fd::RawFd, release: bool) -> Self {
         let d_descriptor = raw as libc::c_int;
         let d_id = 0; // TODO: Confirm "door 0" is appropriate / not wrong for passing sockets
         let d_desc = door_h::door_desc_t__d_data__d_desc { d_descriptor, d_id };
         let d_data = door_h::door_desc_t__d_data { d_desc };
 
-        let d_attributes = door_h::DOOR_DESCRIPTOR | door_h::DOOR_RELEASE;
+        let d_attributes = match release {
+            false => door_h::DOOR_DESCRIPTOR,
+            true  => door_h::DOOR_DESCRIPTOR | door_h::DOOR_RELEASE
+        };
         Self { d_attributes, d_data }
+    }
+
+    pub fn will_release(&self) -> bool {
+        self.d_attributes == (door_h::DOOR_DESCRIPTOR | door_h::DOOR_RELEASE)
     }
 }
 
@@ -161,5 +167,17 @@ mod tests {
 
         // Clean up the door now that we are done.
         fs::remove_file(door_path).unwrap();
+    }
+
+    #[test]
+    fn retain_door_desc_t() {
+        let dd = door_h::door_desc_t::new(-1, false);
+        assert!(!dd.will_release());
+    }
+
+    #[test]
+    fn release_door_desc_t() {
+        let dd = door_h::door_desc_t::new(-1, true);
+        assert!(dd.will_release());
     }
 }
